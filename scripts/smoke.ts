@@ -23,6 +23,11 @@ async function waitFor<T>(read: () => Promise<T>, done: (value: T) => boolean, a
 
 async function fund(): Promise<void> {
   step('Funding the USD wallet')
+  const before = (await api.balances()).find((b) => b.currency === 'USD')
+  if ((before?.available_amount ?? 0) >= 25_000) {
+    console.log(`  USD available: ${before?.available_amount}; no deposit needed`)
+    return
+  }
   let accountId = process.env.AIRWALLEX_GLOBAL_ACCOUNT_ID
   if (!accountId) {
     const account = await api.createGlobalAccount({

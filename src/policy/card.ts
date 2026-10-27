@@ -41,7 +41,8 @@ export function cardRequest(decision: PurchaseDecision, cardholderId: string, cr
     created_by: createdBy,
     form_factor: 'VIRTUAL',
     is_personalized: false,
-    program: { purpose: 'COMMERCIAL', type: 'PREPAID' },
+    // No program.type: the account's default applies. New sandbox accounts only allow CREDIT (GOOD_FUNDS_CREDIT); PREPAID and DEBIT are rejected
+    program: { purpose: 'COMMERCIAL' },
     purpose: 'SUBSCRIPTIONS',
     nick_name: `${offer.product} ${plan}`.slice(0, 32),
     authorization_controls: controlsFor(offer, plan),

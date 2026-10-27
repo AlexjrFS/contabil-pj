@@ -20,7 +20,13 @@ This repo is separate from the production Contabil app (`../contabil`). Never ad
 - Simulation create answers `process_result` + `failure_reason` synchronously; simulation currencies do not include BRL
 - Card update must resend the full controls (`allowed_merchant_categories` resets to `[]`; `transaction_limits` needs both `limits` and `cash_withdrawal_limits`). Freeze = `card_status: INACTIVE`
 - Limits are inclusive; `PER_TRANSACTION` is not cumulative, so pair it with `MONTHLY` or `ALL_TIME`
-- Fund the wallet first or every authorization declines with `INSUFFICIENT_FUNDS`
+- Fund the wallet first or every authorization declines with `INSUFFICIENT_FUNDS` (new sandbox accounts already start with USD balance)
+
+## Sandbox findings (Oct 27)
+- Admin API keys are no longer provisioned for new accounts; we use a scoped key (Read + Write on everything, single account, so no `x-login-as`)
+- Login, balances, global account, deposit, cardholder (PENDING → READY on its own) and card create all work
+- The account only allows card program `CREDIT` / `GOOD_FUNDS_CREDIT`; `PREPAID` and `DEBIT` are rejected with `invalid_argument`
+- **Open:** `POST /simulation/issuing/create` returns `400 bad_request "failed to process transaction"` for every body tried (with/without version header, MCC, 43-char merchant_info, single/two phase, card_number) and even on a card with no currency/MCC controls. Asked in Slack #help
 
 ## Before finishing a task
 `npm run typecheck` and `npm test`. After changing anything under `src/airwallex/`, also `npm run smoke` (needs `.env`).

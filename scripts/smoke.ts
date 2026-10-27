@@ -92,6 +92,8 @@ async function run(): Promise<void> {
   if (rec.kind !== 'buy') throw new Error(`Policy escalated: ${rec.reason}`)
   console.log(`  decision: ${rec.plan} (${rec.reason}), revisit on ${rec.revisitOn ?? '-'}`)
 
+  let mismatches = 0
+
   step('Proposing the card, approving it and executing it')
   const store = new MemoryStore()
   const ctx: PolicyContext = { position: cashPosition, offers: { ...OFFERS } }
@@ -112,6 +114,12 @@ async function run(): Promise<void> {
   if (executed.status !== 'executed') throw new Error(`Execution ${executed.status}: ${executed.error?.message ?? ''}`)
   const again = await executor.execute(proposal.id)
   console.log(`  executed (attempts ${executed.attempts}); second execute returned the same card: ${again.result?.cardId === executed.result?.cardId}`)
+  // Pretend the process stopped after Airwallex created the card but before the result was saved
+  await store.save({ ...executed, status: 'executing', result: undefined })
+  const recovered = await executor.execute(proposal.id)
+  const recoveredOk = recovered.status === 'executed' && recovered.result?.cardId === executed.result?.cardId
+  if (!recoveredOk) mismatches++
+  console.log(`  ${recoveredOk ? '✓' : '✗'} crash recovery found the same card (${recovered.status})`)
   const card = await waitFor(() => api.getCard(executed.result!.cardId), (c) => c.card_status === 'ACTIVE')
   console.log(`  card ${card.card_id}: ${card.card_status}`)
   if (card.card_status !== 'ACTIVE') throw new Error(`Card stuck in ${card.card_status}`)
@@ -125,7 +133,6 @@ async function run(): Promise<void> {
     { label: 'annual charge', amount: toMajor(SAAS_OFFER.annualPrice), currency: 'USD', mcc: SAAS_OFFER.merchantCategoryCode, expect: 'LIMIT_EXCEEDED' },
     { label: 'monthly charge', amount: price, currency: 'USD', mcc: SAAS_OFFER.merchantCategoryCode, expect: 'APPROVED' },
   ]
-  let mismatches = 0
   for (const c of cases) {
     let result: CardTransactionResult
     try {

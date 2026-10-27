@@ -38,6 +38,9 @@ Sandbox API keys: Account > Developer > API keys. All data is synthetic; nothing
 | `src/airwallex/api.ts` | Typed wrappers for balances, global accounts, issuing and simulation endpoints |
 | `src/policy/cash.ts` | Weekly cash projection and annual vs monthly decision |
 | `src/policy/card.ts` | Decision → card controls (create and update) |
+| `src/approvals/proposals.ts` | Proposals with terms computed by the policy; approval bound to a fingerprint of amount, currency, merchant category and merchant |
+| `src/approvals/executor.ts` | Runs approved proposals once (proposal id = `request_id`), re-checks the policy first, recovers after a crash |
+| `src/approvals/store.ts` | Proposal storage (JSON file, in-memory for tests) |
 | `src/demo/company.ts` | Synthetic demo company and SaaS offer |
 | `scripts/smoke.ts` | End-to-end sandbox run |
 

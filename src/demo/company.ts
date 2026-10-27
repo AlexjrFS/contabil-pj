@@ -46,3 +46,6 @@ export const SAAS_OFFER: SubscriptionOffer = {
   annualPrice: cents(5_904),
   startDate: AS_OF,
 }
+
+// Offers the agent can refer to by id. It never passes prices: they come from here
+export const OFFERS: Record<string, SubscriptionOffer> = { framewise: SAAS_OFFER }

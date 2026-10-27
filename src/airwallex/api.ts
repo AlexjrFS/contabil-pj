@@ -168,6 +168,10 @@ export function airwallexApi(client: AirwallexClient) {
 
     getCard: (id: string) => client.get<Card>(`/api/v1/issuing/cards/${encodeURIComponent(id)}`),
 
+    // List items carry no metadata: read each card to see it
+    listCards: (query: { cardholder_id?: string; card_status?: CardStatus; page_num?: number; page_size?: number } = {}) =>
+      client.get<Page<Card>>('/api/v1/issuing/cards', { query }),
+
     updateCard: (id: string, input: UpdateCardInput) =>
       client.post<Card>(`/api/v1/issuing/cards/${encodeURIComponent(id)}/update`, input),
 

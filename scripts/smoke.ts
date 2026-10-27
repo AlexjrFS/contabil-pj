@@ -1,10 +1,12 @@
-// End-to-end check against the Airwallex sandbox: funding → cardholder → decision → card → authorizations.
+// End-to-end check against the Airwallex sandbox: funding → cardholder → decision → approved card → authorizations → re-plan.
 // Run with `npm run smoke` after filling .env. Every step prints what it did; nothing here touches real money.
 import { randomUUID } from 'node:crypto'
 import { airwallexApi, type CardTransactionResult } from '../src/airwallex/api.js'
 import { AirwallexClient, AirwallexError } from '../src/airwallex/client.js'
-import { cashPosition, COMPANY, SAAS_OFFER } from '../src/demo/company.js'
-import { cardRequest, cardUpdate } from '../src/policy/card.js'
+import { createExecutor } from '../src/approvals/executor.js'
+import { approve, proposeCard, proposeCardUpdate, proposeFreeze, type PolicyContext } from '../src/approvals/proposals.js'
+import { MemoryStore } from '../src/approvals/store.js'
+import { cashPosition, COMPANY, OFFERS, SAAS_OFFER } from '../src/demo/company.js'
 import { comparePlans } from '../src/policy/cash.js'
 import { cents, formatUSD, toMajor } from '../src/policy/money.js'
 
@@ -90,10 +92,27 @@ async function run(): Promise<void> {
   if (rec.kind !== 'buy') throw new Error(`Policy escalated: ${rec.reason}`)
   console.log(`  decision: ${rec.plan} (${rec.reason}), revisit on ${rec.revisitOn ?? '-'}`)
 
-  step('Issuing the virtual card that enforces the decision')
-  const decision = { id: randomUUID(), plan: rec.plan, offer: SAAS_OFFER, revisitOn: rec.revisitOn }
-  const created = await api.createCard(cardRequest(decision, holderId, `${COMPANY.founder.first_name} ${COMPANY.founder.last_name}`))
-  const card = await waitFor(() => api.getCard(created.card_id), (c) => c.card_status === 'ACTIVE')
+  step('Proposing the card, approving it and executing it')
+  const store = new MemoryStore()
+  const ctx: PolicyContext = { position: cashPosition, offers: { ...OFFERS } }
+  const executor = createExecutor({
+    store,
+    cards: api,
+    ctx,
+    cardholderId: holderId,
+    createdBy: `${COMPANY.founder.first_name} ${COMPANY.founder.last_name}`,
+  })
+  const proposed = await proposeCard(store, ctx, 'framewise')
+  if (proposed.kind !== 'proposal') throw new Error(`Policy escalated: ${proposed.reason}`)
+  const { proposal } = proposed
+  const { terms } = proposal.action as { terms: { plan: string; amount: number } }
+  console.log(`  proposal ${proposal.id}: ${terms.plan} at ${formatUSD(terms.amount)}`)
+  await approve(store, ctx, proposal.id, proposal.fingerprint)
+  const executed = await executor.execute(proposal.id)
+  if (executed.status !== 'executed') throw new Error(`Execution ${executed.status}: ${executed.error?.message ?? ''}`)
+  const again = await executor.execute(proposal.id)
+  console.log(`  executed (attempts ${executed.attempts}); second execute returned the same card: ${again.result?.cardId === executed.result?.cardId}`)
+  const card = await waitFor(() => api.getCard(executed.result!.cardId), (c) => c.card_status === 'ACTIVE')
   console.log(`  card ${card.card_id}: ${card.card_status}`)
   if (card.card_status !== 'ACTIVE') throw new Error(`Card stuck in ${card.card_status}`)
 
@@ -108,25 +127,47 @@ async function run(): Promise<void> {
   ]
   let mismatches = 0
   for (const c of cases) {
-    const result: CardTransactionResult = await api.simulateAuthorization({
-      card_id: card.card_id,
-      transaction_amount: c.amount,
-      transaction_currency: c.currency,
-      merchant_category_code: c.mcc,
-      merchant_info: SAAS_OFFER.vendor,
-      single_phase: true,
-    })
+    let result: CardTransactionResult
+    try {
+      result = await api.simulateAuthorization({
+        card_id: card.card_id,
+        transaction_amount: c.amount,
+        transaction_currency: c.currency,
+        merchant_category_code: c.mcc,
+        merchant_info: SAAS_OFFER.vendor,
+        single_phase: true,
+      })
+    } catch (error) {
+      // Keep going: the approval steps below don't depend on the simulator
+      mismatches++
+      console.log(`  ✗ ${c.label}: simulator error (${error instanceof Error ? error.message : String(error)})`)
+      continue
+    }
     const outcome = result.process_result === 'APPROVED' ? 'APPROVED' : (result.failure_reason ?? 'DECLINED')
     const ok = outcome === c.expect
     if (!ok) mismatches++
     console.log(`  ${ok ? '✓' : '✗'} ${c.label}: ${outcome}${ok ? '' : ` (expected ${c.expect})`}`)
   }
 
-  step('Price increase: re-plan and update the card controls')
-  const raised = { ...SAAS_OFFER, monthlyPrice: cents(690) }
-  await api.updateCard(card.card_id, cardUpdate(raised, 'monthly'))
+  step('Price increase: a new approval updates the card')
+  ctx.offers.framewise = { ...SAAS_OFFER, monthlyPrice: cents(690) }
+  const update = await proposeCardUpdate(store, ctx, card.card_id, 'framewise')
+  if (update.kind !== 'proposal') throw new Error(`Policy escalated: ${update.reason}`)
+  await approve(store, ctx, update.proposal.id, update.proposal.fingerprint)
+  const applied = await executor.execute(update.proposal.id)
   const updated = await api.getCard(card.card_id)
-  console.log(`  limits now: ${JSON.stringify(updated.authorization_controls?.transaction_limits?.limits)}`)
+  const limits = updated.authorization_controls?.transaction_limits?.limits ?? []
+  const limitsOk = limits.length === 2 && limits.every((l) => l.amount === 690)
+  if (applied.status !== 'executed' || !limitsOk) mismatches++
+  console.log(`  ${limitsOk ? '✓' : '✗'} update ${applied.status}; limits now ${JSON.stringify(limits)}`)
+
+  step('Freeze proposal')
+  const freeze = await proposeFreeze(store, ctx, card.card_id, 'Smoke test')
+  await approve(store, ctx, freeze.id, freeze.fingerprint)
+  await executor.execute(freeze.id)
+  const frozen = await api.getCard(card.card_id)
+  if (frozen.card_status !== 'INACTIVE') mismatches++
+  console.log(`  ${frozen.card_status === 'INACTIVE' ? '✓' : '✗'} card ${frozen.card_status}`)
 
   console.log(mismatches === 0 ? '\nAll checks passed.' : `\n${mismatches} check(s) did not match.`)
   if (mismatches) process.exitCode = 1

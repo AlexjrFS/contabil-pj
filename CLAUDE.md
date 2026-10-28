@@ -37,6 +37,8 @@ This repo is separate from the production Contabil app (`../contabil`). Never ad
 - Local: `npm run server` (node:http adapter, files in `data/`, `DEMO_TOKEN` optional)
 - The executor's in-flight map is per process. On serverless a double tap may reach two instances: both create with the same `request_id`, Airwallex rejects the second, and `findCardByDecision` returns the first card. That is the intended path; don't add locking for it
 - The cardholder is created lazily on the first card (a request must not block on cardholder polling)
+- App settings: `EXPO_PUBLIC_API_URL` / `EXPO_PUBLIC_DEMO_TOKEN` are EAS environment variables (`scripts/eas-env.sh`), not `app/.env` (EAS ignores it). Tapping *Save and test* in the app stores the values on the device, and stored values win over later updates: after rotating `DEMO_TOKEN`, re-enter it on devices that saved settings
+- Publish app JS with `npx eas-cli update --branch preview --environment preview` (the `--environment` flag is required non-interactively); check the bundle in `app/dist` contains the API URL before telling anyone
 - App UI is in **English** (judges, agent and invoice are English), unlike the production Contabil app
 
 ## Before finishing a task

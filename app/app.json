@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Contabil PJ",
+    "slug": "contabil-pj",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/logo.png",
+    "scheme": "contabilpj",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.halcyontech.contabilpj",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.halcyontech.contabilpj",
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/logo.png",
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/logo.png",
+          "imageWidth": 170,
+          "resizeMode": "contain",
+          "backgroundColor": "#130B05"
+        }
+      ]
+    ],
+    "owner": "alex0812"
+  }
+}

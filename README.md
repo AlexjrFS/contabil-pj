@@ -31,7 +31,23 @@ npm run chat -- --after-invoice "Read the December invoice from Framewise"
 npm run server         # HTTP API for the app on :3000 (state in data/)
 ```
 
-Sandbox API keys: Account > Developer > API keys. All data is synthetic; nothing touches real money.
+Sandbox API keys: Account > Developer > API keys (scoped key, Read + Write). All data is synthetic; nothing touches real money.
+
+### App
+
+The Expo app (SDK 58) lives in `app/`: chat with the agent, confirmation cards, the card screen with test charges, and scenario controls.
+
+```bash
+cd app
+npm install
+npx expo start         # press w for web, or scan the QR code with Expo Go
+```
+
+It talks to `EXPO_PUBLIC_API_URL` (default: the API on the same machine, port 3000) with the demo token `EXPO_PUBLIC_DEMO_TOKEN`; both can be changed in the app's Settings screen.
+
+### Hosting
+
+The API runs on Vercel (`api/index.ts`), with Upstash Redis for proposals and scenario state. `bash scripts/vercel-env.sh` copies the secrets from `.env` to the Vercel project. Every route except `/health` requires `Authorization: Bearer <DEMO_TOKEN>`; the token is baked into the private demo builds.
 
 ## Project layout
 
@@ -49,6 +65,8 @@ Sandbox API keys: Account > Developer > API keys. All data is synthetic; nothing
 | `src/agent/chat.ts` | Claude tool-runner loop that streams text and hands proposals to the app |
 | `src/app/session.ts` | Demo session: shared policy context, executor and scenario state (cardholder, cards, invoices) persisted in `data/` |
 | `src/server/app.ts` | HTTP API: streamed chat (NDJSON), approve/reject, card, invoice arrival, named test charges, reset |
+| `src/server/vercel.ts`, `api/index.ts` | Vercel entry: Redis-backed session per request, demo token required |
+| `app/` | Expo app (chat, confirmation card, card screen, settings) |
 | `src/demo/company.ts` | Synthetic demo company and SaaS offer |
 | `src/demo/invoices.ts` | Price-increase invoice with a hidden prompt injection in its note |
 | `scripts/smoke.ts` | End-to-end sandbox run |

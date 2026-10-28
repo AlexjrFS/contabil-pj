@@ -26,6 +26,8 @@ npm install
 cp .env.example .env   # fill in AIRWALLEX_CLIENT_ID and AIRWALLEX_API_KEY
 npm test               # policy and client tests (no network)
 npm run smoke          # end-to-end run against the Airwallex sandbox
+npm run chat -- "Should we buy Framewise annual or monthly?"   # needs ANTHROPIC_API_KEY
+npm run chat -- --after-invoice "Read the December invoice from Framewise"
 ```
 
 Sandbox API keys: Account > Developer > API keys. All data is synthetic; nothing touches real money.
@@ -41,7 +43,11 @@ Sandbox API keys: Account > Developer > API keys. All data is synthetic; nothing
 | `src/approvals/proposals.ts` | Proposals with terms computed by the policy; approval bound to a fingerprint of amount, currency, merchant category and merchant |
 | `src/approvals/executor.ts` | Runs approved proposals once (proposal id = `request_id`), re-checks the policy first, recovers after a crash |
 | `src/approvals/store.ts` | Proposal storage (JSON file, in-memory for tests) |
+| `src/approvals/invoices.ts` | Applies a supplier invoice to an offer from its structured fields only |
+| `src/agent/tools.ts` | The model's tools: read cash, plans, invoices and cards; propose by id. No tool approves or executes |
+| `src/agent/chat.ts` | Claude tool-runner loop that streams text and hands proposals to the app |
 | `src/demo/company.ts` | Synthetic demo company and SaaS offer |
+| `src/demo/invoices.ts` | Price-increase invoice with a hidden prompt injection in its note |
 | `scripts/smoke.ts` | End-to-end sandbox run |
 
 ## Team

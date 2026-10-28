@@ -285,3 +285,11 @@ test('the JSON store keeps proposals across instances and serializes writes', as
     await rm(dir, { recursive: true, force: true })
   }
 })
+
+test('an update that would switch the plan needs a new card, not an update', async () => {
+  const env = setup()
+  const result = await proposeCardUpdate(env.store, env.ctx, 'card-1', 'framewise', 'annual')
+  assert.equal(result.kind, 'escalate')
+  assert.equal((result as { reason: string }).reason, 'plan_change_needs_new_card')
+  assert.deepEqual(await env.store.list(), [])
+})

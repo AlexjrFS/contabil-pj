@@ -16,7 +16,7 @@ import {
   type Terms,
 } from '../approvals/proposals.js'
 import type { Invoice } from '../demo/invoices.js'
-import { comparePlans, projectWeeks, type PlanComparison } from '../policy/cash.js'
+import { comparePlans, projectWeeks, type Plan, type PlanComparison } from '../policy/cash.js'
 import { cents, formatUSD } from '../policy/money.js'
 
 export interface AgentDeps {
@@ -25,6 +25,8 @@ export interface AgentDeps {
   invoices: Record<string, Invoice>
   cards: Pick<AirwallexApi, 'getCard'>
   onProposal: (proposal: Proposal) => void
+  // The card already issued for an offer, if any
+  cardFor?: (offerId: string) => { cardId: string; plan: Plan } | undefined
 }
 
 const json = (value: unknown) => JSON.stringify(value, null, 2)
@@ -177,7 +179,13 @@ export function agentTools(deps: AgentDeps): BetaRunnableTool<any>[] {
       description:
         'Propose a virtual card for an offer. The policy sets plan, limit, currency and merchant category; the founder must approve in the app before anything is issued.',
       inputSchema: z.object({ offer_id: offerId }),
-      run: async ({ offer_id }) => proposalResult(await proposeCard(store, ctx, offer_id), deps.onProposal),
+      run: async ({ offer_id }) => {
+        const existing = deps.cardFor?.(offer_id)
+        if (existing) {
+          return json({ error: `card ${existing.cardId} already exists for ${offer_id}; use propose_card_update` })
+        }
+        return proposalResult(await proposeCard(store, ctx, offer_id), deps.onProposal)
+      },
     }),
 
     betaZodTool({
@@ -185,8 +193,13 @@ export function agentTools(deps: AgentDeps): BetaRunnableTool<any>[] {
       description:
         "Propose updating an existing card's controls to the offer's current terms (e.g. after a price change). Needs the founder's approval.",
       inputSchema: z.object({ card_id: cardId, offer_id: offerId }),
-      run: async ({ card_id, offer_id }) =>
-        proposalResult(await proposeCardUpdate(store, ctx, card_id, offer_id), deps.onProposal),
+      run: async ({ card_id, offer_id }) => {
+        const existing = deps.cardFor?.(offer_id)
+        if (deps.cardFor && existing?.cardId !== card_id) {
+          return json({ error: `card ${card_id} is not the card issued for ${offer_id}` })
+        }
+        return proposalResult(await proposeCardUpdate(store, ctx, card_id, offer_id, existing?.plan), deps.onProposal)
+      },
     }),
 
     betaZodTool({

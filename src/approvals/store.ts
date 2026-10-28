@@ -19,6 +19,10 @@ export class MemoryStore implements ProposalStore {
   async list() {
     return [...this.items.values()].map((p) => structuredClone(p))
   }
+
+  async clear() {
+    this.items.clear()
+  }
 }
 
 export class JsonFileStore implements ProposalStore {
@@ -47,16 +51,32 @@ export class JsonFileStore implements ProposalStore {
   }
 
   save(proposal: Proposal): Promise<void> {
+    return this.update((all) => {
+      all[proposal.id] = proposal
+    })
+  }
+
+  clear(): Promise<void> {
+    return this.update((all) => {
+      for (const id of Object.keys(all)) delete all[id]
+    })
+  }
+
+  private update(change: (all: Record<string, Proposal>) => void): Promise<void> {
     const write = this.queue.then(async () => {
       const all = await this.read()
-      all[proposal.id] = proposal
-      await mkdir(dirname(this.path), { recursive: true })
-      // Write then rename: a crash mid-write never leaves a half-written file
-      const tmp = `${this.path}.tmp`
-      await writeFile(tmp, JSON.stringify(all, null, 2))
-      await rename(tmp, this.path)
+      change(all)
+      await writeJsonAtomic(this.path, all)
     })
     this.queue = write.catch(() => {})
     return write
   }
+}
+
+// Write then rename: a crash mid-write never leaves a half-written file
+export async function writeJsonAtomic(path: string, value: unknown): Promise<void> {
+  await mkdir(dirname(path), { recursive: true })
+  const tmp = `${path}.tmp`
+  await writeFile(tmp, JSON.stringify(value, null, 2))
+  await rename(tmp, path)
 }

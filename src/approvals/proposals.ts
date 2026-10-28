@@ -54,6 +54,8 @@ export interface ProposalStore {
   get(id: string): Promise<Proposal | undefined>
   save(proposal: Proposal): Promise<void>
   list(): Promise<Proposal[]>
+  // Demo reset between takes
+  clear(): Promise<void>
 }
 
 export interface PolicyContext {
@@ -135,9 +137,14 @@ async function proposeFromPolicy(
   ctx: PolicyContext,
   offerId: string,
   build: (terms: Terms) => Action,
+  requirePlan?: Plan,
 ): Promise<ProposeResult> {
   const result = termsFor(ctx, offerId)
   if (result.kind === 'escalate') return result
+  // A card's transaction count (one charge vs repeating) is fixed at issue, so a plan switch needs a new card
+  if (requirePlan && result.terms.plan !== requirePlan) {
+    return { kind: 'escalate', reason: 'plan_change_needs_new_card', comparison: result.comparison }
+  }
   const proposal = newProposal(ctx, build(result.terms))
   await store.save(proposal)
   return { kind: 'proposal', proposal, comparison: result.comparison }
@@ -147,8 +154,14 @@ export const proposeCard = (store: ProposalStore, ctx: PolicyContext, offerId: s
   proposeFromPolicy(store, ctx, offerId, (terms) => ({ kind: 'issue_card', offerId, terms }))
 
 // New terms from the vendor (e.g. a price increase) need a new approval before the card accepts them
-export const proposeCardUpdate = (store: ProposalStore, ctx: PolicyContext, cardId: string, offerId: string) =>
-  proposeFromPolicy(store, ctx, offerId, (terms) => ({ kind: 'update_card', cardId, offerId, terms }))
+// `currentPlan`: the plan the card was issued for, when known
+export const proposeCardUpdate = (
+  store: ProposalStore,
+  ctx: PolicyContext,
+  cardId: string,
+  offerId: string,
+  currentPlan?: Plan,
+) => proposeFromPolicy(store, ctx, offerId, (terms) => ({ kind: 'update_card', cardId, offerId, terms }), currentPlan)
 
 export async function proposeFreeze(store: ProposalStore, ctx: PolicyContext, cardId: string, reason: string) {
   const proposal = newProposal(ctx, { kind: 'freeze_card', cardId, reason })

@@ -5,7 +5,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { BetaRunnableTool } from '@anthropic-ai/sdk/lib/tools/BetaRunnableTool'
 import { z } from 'zod'
 import type { Proposal } from '../approvals/proposals.js'
-import { conversationContext, SYSTEM_PROMPT } from './prompt.js'
+import { SYSTEM_PROMPT } from './prompt.js'
 
 export const DEFAULT_MODEL = 'claude-opus-5-5'
 
@@ -30,7 +30,8 @@ export async function* converse(
   // Built with a callback that pushes into `queue`: see agentTools(..., onProposal)
   tools: BetaRunnableTool<any>[],
   queue: Proposal[],
-  options: { client?: Anthropic; asOf: string; signal?: AbortSignal },
+  // `context`: conversationContext(...) — date and cards already issued
+  options: { client?: Anthropic; context: string; signal?: AbortSignal },
 ): AsyncGenerator<ChatEvent> {
   const client = options.client ?? new Anthropic()
   const model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL
@@ -47,7 +48,7 @@ export async function* converse(
       cache_control: { type: 'ephemeral' },
       system: [
         { type: 'text', text: SYSTEM_PROMPT },
-        { type: 'text', text: conversationContext(options.asOf) },
+        { type: 'text', text: options.context },
       ],
       tools,
       messages: messages.map((m) => ({ role: m.role, content: m.text })),

@@ -12,4 +12,16 @@ How this system works:
 
 Style: short, plain English, no tables unless asked. Money as the tools format it.`
 
-export const conversationContext = (asOf: string) => `Today, for the cash policy, is ${asOf}.`
+export interface CardSummary {
+  offerId: string
+  vendor?: string
+  cardId: string
+  plan: string
+}
+
+export function conversationContext(asOf: string, cards: CardSummary[] = []): string {
+  const lines = [`Today, for the cash policy, is ${asOf}.`]
+  if (cards.length === 0) lines.push('No cards have been issued yet.')
+  for (const c of cards) lines.push(`Card issued for offer "${c.offerId}" (${c.vendor ?? 'unknown vendor'}): ${c.cardId}, ${c.plan} plan.`)
+  return lines.join(' ')
+}

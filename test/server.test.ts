@@ -88,7 +88,10 @@ test('approve needs the fingerprint that was shown, then issues the card', async
     assert.equal(ok.status, 200)
     assert.equal(ok.body.status, 'executed')
     assert.equal(ok.body.display.charge, '$600.00')
-    assert.equal((await call('GET', '/cards/framewise')).body.cardId, 'card-1')
+    const card = (await call('GET', '/cards/framewise')).body
+    assert.equal(card.cardId, 'card-1')
+    assert.deepEqual(card.limits.limits[1], { amount: 600, interval: 'MONTHLY', remaining: 600 })
+    assert.deepEqual(card.transactions, [])
     assert.equal((await call('GET', '/proposals')).body.length, 1)
     assert.equal((await call('POST', `/proposals/${proposal.id}/approve`, { fingerprint: proposal.fingerprint })).status, 409)
   })

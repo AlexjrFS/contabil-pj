@@ -59,6 +59,8 @@ export function CardScreen() {
       const approved = result.process_result === 'APPROVED'
       const outcome = approved ? 'Approved' : `Declined · ${result.failure_reason ?? 'DECLINED'}`
       setAttempts((a) => [{ id: Date.now(), label, amount: charge.display, outcome, approved }, ...a])
+      // Remaining limits and the Airwallex activity changed
+      setCard(await api.card(OFFER))
     } catch (e) {
       const outcome = e instanceof ApiError ? `Airwallex error · ${e.message}` : 'Could not reach the server'
       setAttempts((a) => [{ id: Date.now(), label, outcome, approved: false }, ...a])
@@ -89,9 +91,17 @@ export function CardScreen() {
           </View>
           <Text style={{ color: colors.muted, fontSize: 12 }}>{card.cardId}</Text>
           <Text style={[styles.section, { color: colors.muted }]}>Controls enforced by Airwallex</Text>
-          {controls?.transaction_limits.limits.map((l) => (
-            <Row key={l.interval} label={l.interval === 'PER_TRANSACTION' ? 'Per charge' : l.interval.toLowerCase()} value={formatMajor(l.amount, currency)} />
-          ))}
+          {card.limits.limits.map((l) =>
+            l.interval === 'PER_TRANSACTION' ? (
+              <Row key={l.interval} label="Per charge" value={formatMajor(l.amount, currency)} />
+            ) : (
+              <Row
+                key={l.interval}
+                label={l.interval === 'MONTHLY' ? 'Per month' : 'In total'}
+                value={`${formatMajor(l.amount, currency)} · ${formatMajor(l.remaining, currency)} left`}
+              />
+            ),
+          )}
           <Row label="Currencies" value={(controls?.allowed_currencies ?? []).join(', ') || 'any'} />
           <Row label="Merchant categories" value={(controls?.allowed_merchant_categories ?? []).map(describeCategory).join(', ') || 'any'} />
           <Row label="Plan" value={card.plan} />
@@ -115,6 +125,9 @@ export function CardScreen() {
               </Pressable>
             ))}
           </View>
+          {attempts.length === 0 && card.transactions.length === 0 ? (
+            <Text style={{ color: colors.muted, fontSize: 13 }}>No charges yet.</Text>
+          ) : null}
           {attempts.map((a) => (
             <View key={a.id} style={[styles.attempt, { borderColor: colors.border }]}>
               <Text style={{ color: colors.text, fontWeight: '600' }}>
@@ -124,6 +137,28 @@ export function CardScreen() {
               <Text style={{ color: a.approved ? colors.success : colors.danger }}>{a.outcome}</Text>
             </View>
           ))}
+        </View>
+      ) : null}
+
+      {card && card.transactions.length > 0 ? (
+        <View style={[styles.panel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.title, { color: colors.text }]}>Activity on Airwallex</Text>
+          {card.transactions.map((t) => {
+            const declined = t.status === 'FAILED'
+            return (
+              <View key={t.transaction_id} style={[styles.attempt, { borderColor: colors.border }]}>
+                <View style={styles.row}>
+                  <Text style={{ color: colors.text, fontWeight: '600' }}>
+                    {formatMajor(Math.abs(t.transaction_amount), t.transaction_currency)}
+                  </Text>
+                  <Text style={{ color: declined ? colors.danger : colors.success, fontWeight: '600' }}>
+                    {declined ? `Declined · ${t.failure_reason ?? 'FAILED'}` : t.status === 'PENDING' ? 'Approved · pending' : 'Approved'}
+                  </Text>
+                </View>
+                <Text style={{ color: colors.muted, fontSize: 12 }}>{t.transaction_date.replace('T', ' ').slice(0, 16)} UTC</Text>
+              </View>
+            )
+          })}
         </View>
       ) : null}
     </ScrollView>

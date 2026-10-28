@@ -73,6 +73,17 @@ export interface CardView {
     }
     metadata?: Record<string, string>
   }
+  // What is left in each interval, from Airwallex (MONTHLY is cumulative)
+  limits: { currency: string; limits: (Limit & { remaining: number })[] }
+  // Authorizations on this card as Airwallex recorded them; amounts in major units, negative = money out
+  transactions: {
+    transaction_id: string
+    status: string
+    transaction_amount: number
+    transaction_currency: string
+    transaction_date: string
+    failure_reason?: string
+  }[]
 }
 
 export type ChargeKind = 'monthly' | 'annual' | 'other_currency' | 'other_category'

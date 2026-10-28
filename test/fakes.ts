@@ -33,6 +33,13 @@ export function fakeApi(cardholderStatus: CardholderStatus = 'READY') {
     async getCard(id) {
       return cards.get(id)!
     },
+    async getCardLimits(id) {
+      const limits = cards.get(id)!.authorization_controls!.transaction_limits.limits
+      return { currency: 'USD', limits: limits.map((l) => ({ ...l, remaining: l.amount })) }
+    },
+    async listTransactions() {
+      return { items: [] }
+    },
     async updateCard(id) {
       calls.updates++
       return cards.get(id)!

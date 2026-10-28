@@ -125,6 +125,25 @@ export interface CardTransactionResult {
   merchant?: { category_code?: string; name?: string }
 }
 
+export interface CardLimits {
+  currency: string
+  // remaining: what is left in the current interval (cumulative for MONTHLY / ALL_TIME)
+  limits: (Limit & { remaining: number })[]
+}
+
+// Amounts in major units; negative = money out. status FAILED carries failure_reason
+export interface CardTransactionRecord {
+  transaction_id: string
+  card_id: string
+  transaction_type: string
+  status: string
+  transaction_amount: number
+  transaction_currency: string
+  transaction_date: string
+  failure_reason?: string
+  merchant?: { name?: string; category_code?: string }
+}
+
 export interface Page<T> {
   items: T[]
   has_more?: boolean
@@ -168,6 +187,8 @@ export function airwallexApi(client: AirwallexClient) {
 
     getCard: (id: string) => client.get<Card>(`/api/v1/issuing/cards/${encodeURIComponent(id)}`),
 
+    getCardLimits: (id: string) => client.get<CardLimits>(`/api/v1/issuing/cards/${encodeURIComponent(id)}/limits`),
+
     // List items carry no metadata: read each card to see it
     listCards: (query: { cardholder_id?: string; card_status?: CardStatus; page_num?: number; page_size?: number } = {}) =>
       client.get<Page<Card>>('/api/v1/issuing/cards', { query }),
@@ -192,7 +213,7 @@ export function airwallexApi(client: AirwallexClient) {
       ),
 
     listTransactions: (query: { card_id?: string; page_num?: number; page_size?: number } = {}) =>
-      client.get<Page<Record<string, unknown>>>('/api/v1/issuing/transactions', { query }),
+      client.get<Page<CardTransactionRecord>>('/api/v1/issuing/transactions', { query }),
   }
 }
 

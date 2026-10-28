@@ -25,6 +25,8 @@ export type SessionApi = Pick<
   AirwallexApi,
   | 'createCard'
   | 'getCard'
+  | 'getCardLimits'
+  | 'listTransactions'
   | 'updateCard'
   | 'listCards'
   | 'createIndividualCardholder'
@@ -156,9 +158,16 @@ export async function openSession(deps: SessionDeps) {
       return result
     },
 
+    // The card as Airwallex sees it: controls, what is left this month, and its authorizations (approved and declined)
     async card(offerId: string) {
       const issued = state.cards[offerId]
-      return issued ? { ...issued, card: await api.getCard(issued.cardId) } : null
+      if (!issued) return null
+      const [card, limits, transactions] = await Promise.all([
+        api.getCard(issued.cardId),
+        api.getCardLimits(issued.cardId),
+        api.listTransactions({ card_id: issued.cardId, page_size: 20 }),
+      ])
+      return { ...issued, card, limits, transactions: transactions.items }
     },
 
     // A charge at the vendor, as the card network would send it. Amounts in cents, like everywhere else

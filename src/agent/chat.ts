@@ -7,7 +7,11 @@ import { z } from 'zod'
 import type { Proposal } from '../approvals/proposals.js'
 import { SYSTEM_PROMPT } from './prompt.js'
 
-export const DEFAULT_MODEL = 'claude-opus-5-5'
+// Haiku 5.5 matched Opus 5.5 on the demo scenes (plan explanation, proposal, injected invoice) at a fraction
+// of the cost and latency: the model only explains numbers the tools computed. ANTHROPIC_MODEL overrides it
+export const DEFAULT_MODEL = 'claude-haiku-5-5'
+// Models that accept the server-side refusal fallback; Haiku has none
+const FALLBACK_MODELS = new Set(['claude-fable-5-1', 'claude-opus-5-5', 'claude-opus-5', 'claude-sonnet-5-5'])
 
 export const ChatMessages = z
   .array(z.object({ role: z.enum(['user', 'assistant']), text: z.string().min(1).max(4000) }))
@@ -53,8 +57,8 @@ export async function* converse(
       tools,
       messages: messages.map((m) => ({ role: m.role, content: m.text })),
       stream: true,
-      // A false-positive refusal on the default model is retried server-side on another model
-      ...(model === DEFAULT_MODEL ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const } : {}),
+      // A false-positive refusal is retried server-side on another model, where the model supports it
+      ...(FALLBACK_MODELS.has(model) ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const } : {}),
     },
     { signal: options.signal },
   )

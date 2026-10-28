@@ -30,7 +30,7 @@ This repo is separate from the production Contabil app (`../contabil`). Never ad
 - The account only allows card program `CREDIT` / `GOOD_FUNDS_CREDIT`; `PREPAID` and `DEBIT` are rejected with `invalid_argument`
 - A reused `request_id` on card create returns `400 invalid_argument` with `source: request_id`, **not** the original card. The executor recovers by listing the cardholder's cards and matching `metadata.decision_id` (list items carry no metadata, so each card is read)
 - Card update (full controls) and freeze/unfreeze (`card_status`) verified
-- **Open:** `POST /simulation/issuing/create` returns `400 bad_request "failed to process transaction"` for every body tried (with/without version header, MCC, 43-char merchant_info, single/two phase, card_number) and even on a card with no currency/MCC controls. To ask in Slack #help (support is Slack-only during the hackathon)
+- `POST /simulation/issuing/create` returned `400 bad_request "failed to process transaction"` for every body on Oct 27–28 (a sandbox-side issue other teams hit too; Airwallex acknowledged it in Slack). Fixed on Oct 28: `npm run smoke` passes end to end (EUR → `CURRENCY_NOT_ALLOWED`, MCC 5812 → `MERCHANT_CATEGORY_NOT_ALLOWED`, annual → `LIMIT_EXCEEDED`, monthly → `APPROVED`)
 
 ## Hosting
 - **Vercel** (`api/index.ts` → `src/server/vercel.ts`): fetch-style handler from `src/server/app.ts`; every API path is rewritten to `/api` (`vercel.json`), static files (the web app later) come from `public/`. Each request opens a session over **Upstash Redis** (`RedisProposalStore`, `RedisStateStore`); the function throws if the Redis vars or `DEMO_TOKEN` are missing. Never fall back to disk there

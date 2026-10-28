@@ -28,6 +28,7 @@ npm test               # policy and client tests (no network)
 npm run smoke          # end-to-end run against the Airwallex sandbox
 npm run chat -- "Should we buy Framewise annual or monthly?"   # needs ANTHROPIC_API_KEY
 npm run chat -- --after-invoice "Read the December invoice from Framewise"
+npm run server         # HTTP API for the app on :3000 (state in data/)
 ```
 
 Sandbox API keys: Account > Developer > API keys. All data is synthetic; nothing touches real money.
@@ -46,6 +47,8 @@ Sandbox API keys: Account > Developer > API keys. All data is synthetic; nothing
 | `src/approvals/invoices.ts` | Applies a supplier invoice to an offer from its structured fields only |
 | `src/agent/tools.ts` | The model's tools: read cash, plans, invoices and cards; propose by id. No tool approves or executes |
 | `src/agent/chat.ts` | Claude tool-runner loop that streams text and hands proposals to the app |
+| `src/app/session.ts` | Demo session: shared policy context, executor and scenario state (cardholder, cards, invoices) persisted in `data/` |
+| `src/server/app.ts` | HTTP API: streamed chat (NDJSON), approve/reject, card, invoice arrival, named test charges, reset |
 | `src/demo/company.ts` | Synthetic demo company and SaaS offer |
 | `src/demo/invoices.ts` | Price-increase invoice with a hidden prompt injection in its note |
 | `scripts/smoke.ts` | End-to-end sandbox run |

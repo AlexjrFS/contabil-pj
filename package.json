@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test test/*.test.ts",
     "smoke": "tsx --env-file-if-exists=.env scripts/smoke.ts",
-    "chat": "tsx --env-file-if-exists=.env scripts/chat.ts"
+    "chat": "tsx --env-file-if-exists=.env scripts/chat.ts",
+    "server": "tsx --env-file-if-exists=.env src/server/main.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",

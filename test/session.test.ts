@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import type { Proposal } from '../src/approvals/proposals.js'
 import { JsonFileStore } from '../src/approvals/store.js'
+import { FileStateStore } from '../src/app/state.js'
 import { openSession, type SessionApi } from '../src/app/session.js'
 import { fakeApi } from './fakes.js'
 import { PRICE_INCREASE } from '../src/demo/invoices.js'
@@ -23,7 +24,7 @@ const open = (dir: string, api: SessionApi) =>
   openSession({
     api,
     store: new JsonFileStore(join(dir, 'proposals.json')),
-    statePath: join(dir, 'state.json'),
+    stateStore: new FileStateStore(join(dir, 'state.json')),
     sleep: async () => {},
   })
 
@@ -34,13 +35,17 @@ async function proposeVia(session: Awaited<ReturnType<typeof open>>, tool: strin
   return { result, proposal: proposals[0] }
 }
 
-test('the first session creates a READY cardholder once, using pass_review when needed', async () => {
+test('the cardholder is created on the first card, once, using pass_review when needed', async () => {
   await withDir(async (dir) => {
     const { api, calls } = fakeApi('PENDING')
-    await open(dir, api)
-    await open(dir, api)
+    const first = await open(dir, api)
+    assert.equal(calls.holders, 0)
+    const { proposal } = await proposeVia(first, 'propose_card', { offer_id: 'framewise' })
+    await first.approve(proposal!.id, proposal!.fingerprint)
     assert.equal(calls.holders, 1)
     assert.equal(calls.reviews, 1)
+    await open(dir, api)
+    assert.equal(calls.holders, 1)
   })
 })
 

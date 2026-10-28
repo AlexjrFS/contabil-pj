@@ -19,7 +19,8 @@ export interface ExecutorDeps {
   store: ProposalStore
   cards: CardApi
   ctx: PolicyContext
-  cardholderId: string
+  // A function when the cardholder is created lazily (on the first card)
+  cardholderId: string | (() => Promise<string>)
   createdBy: string
 }
 
@@ -32,11 +33,14 @@ const isReusedRequestId = (error: unknown) =>
 export function createExecutor(deps: ExecutorDeps) {
   const { store, cards, ctx } = deps
   // Two clicks on "approve" share one run
+  // Per process only: on serverless a double tap can reach two instances. Then both call createCard with the
+  // same request_id, Airwallex rejects the second, and findCardByDecision returns the first card. Don't "fix" this
   const inFlight = new Map<string, Promise<Proposal>>()
+  const holder = async () => (typeof deps.cardholderId === 'string' ? deps.cardholderId : deps.cardholderId())
 
   async function findCardByDecision(decisionId: string): Promise<string | undefined> {
     for (let page = 0; ; page++) {
-      const list = await cards.listCards({ cardholder_id: deps.cardholderId, page_num: page, page_size: 50 })
+      const list = await cards.listCards({ cardholder_id: await holder(), page_num: page, page_size: 50 })
       for (const item of list.items) {
         const card = await cards.getCard(item.card_id)
         if (card.metadata?.decision_id === decisionId) return card.card_id
@@ -59,7 +63,7 @@ export function createExecutor(deps: ExecutorDeps) {
     }
     const decision = { id: proposal.id, plan: action.terms.plan, offer, revisitOn: action.terms.revisitOn }
     try {
-      return (await cards.createCard(cardRequest(decision, deps.cardholderId, deps.createdBy))).card_id
+      return (await cards.createCard(cardRequest(decision, await holder(), deps.createdBy))).card_id
     } catch (error) {
       if (!isReusedRequestId(error)) throw error
       const existing = await findCardByDecision(proposal.id)

@@ -7,8 +7,10 @@ import { test } from 'node:test'
 import type { ChatEvent } from '../src/agent/chat.js'
 import { AirwallexError } from '../src/airwallex/client.js'
 import { JsonFileStore } from '../src/approvals/store.js'
+import { FileStateStore } from '../src/app/state.js'
 import { openSession } from '../src/app/session.js'
-import { createApp, type Converse } from '../src/server/app.js'
+import { createServer } from 'node:http'
+import { createHandler, toNodeListener, type Converse } from '../src/server/app.js'
 import { fakeApi } from './fakes.js'
 
 // Stands in for the model: says something, calls propose_card, then hands over the proposals
@@ -20,22 +22,24 @@ const fakeChat: Converse = async function* (_messages, tools, queue) {
   yield { type: 'end' }
 }
 
-async function withServer(fn: (call: (method: string, path: string, body?: unknown) => Promise<{ status: number; body: any; text: string }>, fake: ReturnType<typeof fakeApi>) => Promise<void>) {
+type Call = (method: string, path: string, body?: unknown, headers?: Record<string, string>) => Promise<{ status: number; body: any; text: string }>
+
+async function withServer(fn: (call: Call, fake: ReturnType<typeof fakeApi>) => Promise<void>, token?: string) {
   const dir = await mkdtemp(join(tmpdir(), 'contabil-pj-server-'))
   const fake = fakeApi()
   const session = await openSession({
     api: fake.api,
     store: new JsonFileStore(join(dir, 'proposals.json')),
-    statePath: join(dir, 'state.json'),
+    stateStore: new FileStateStore(join(dir, 'state.json')),
     sleep: async () => {},
   })
-  const server = createApp(session, { chat: fakeChat }).listen(0, '127.0.0.1')
+  const server = createServer(toNodeListener(createHandler(async () => session, { chat: fakeChat, token }))).listen(0, '127.0.0.1')
   await new Promise((r) => server.once('listening', r))
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
-  const call = async (method: string, path: string, body?: unknown) => {
+  const call: Call = async (method, path, body, headers = {}) => {
     const res = await fetch(base + path, {
       method,
-      headers: body === undefined ? {} : { 'content-type': 'application/json' },
+      headers: body === undefined ? headers : { ...headers, 'content-type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
     })
     const text = await res.text()
@@ -133,4 +137,15 @@ test('reset clears the take; CORS preflight and unknown routes behave', async ()
     assert.equal((await call('OPTIONS', '/chat')).status, 204)
     assert.equal((await call('GET', '/nope')).status, 404)
   })
+})
+
+test('with a demo token, everything but /health needs it', async () => {
+  await withServer(async (call) => {
+    const health = await call('GET', '/health')
+    assert.equal(health.status, 200)
+    assert.equal(health.body.model, 'claude-haiku-5-5')
+    assert.equal((await call('GET', '/state')).status, 401)
+    assert.equal((await call('GET', '/state', undefined, { authorization: 'Bearer wrong' })).status, 401)
+    assert.equal((await call('GET', '/state', undefined, { authorization: 'Bearer s3cret' })).status, 200)
+  }, 's3cret')
 })

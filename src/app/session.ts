@@ -1,7 +1,7 @@
 // One demo session: the shared policy context, proposals, executor and the scenario state (cardholder, cards
 // issued, invoices received). The server and the CLI both go through here, so the agent's tools and the
-// executor always see the same offers. State lives in data/ and survives a restart mid-rehearsal.
-import { readFile } from 'node:fs/promises'
+// executor always see the same offers. State is persisted (file locally, Redis on Vercel), so it survives a
+// restart mid-rehearsal and works when every request opens a fresh session.
 import type { AirwallexApi, CardTransactionResult } from '../airwallex/api.js'
 import { conversationContext } from '../agent/prompt.js'
 import { agentTools } from '../agent/tools.js'
@@ -14,25 +14,12 @@ import {
   type Proposal,
   type ProposalStore,
 } from '../approvals/proposals.js'
-import { writeJsonAtomic } from '../approvals/store.js'
 import { AS_OF, cashPosition, COMPANY, OFFERS } from '../demo/company.js'
 import { INVOICES, type Invoice } from '../demo/invoices.js'
-import type { Plan } from '../policy/cash.js'
 import { toMajor, type Cents } from '../policy/money.js'
+import { emptyState, FileStateStore, type StateStore } from './state.js'
 
-export interface IssuedCard {
-  cardId: string
-  plan: Plan
-  proposalId: string
-}
-
-export interface DemoState {
-  cardholderId?: string
-  // By offer id
-  cards: Record<string, IssuedCard>
-  // Invoice ids in the order they arrived
-  invoices: string[]
-}
+export type { DemoState, IssuedCard } from './state.js'
 
 export type SessionApi = Pick<
   AirwallexApi,
@@ -49,22 +36,11 @@ export type SessionApi = Pick<
 export interface SessionDeps {
   api: SessionApi
   store: ProposalStore
-  statePath?: string
+  stateStore?: StateStore
   invoices?: Record<string, Invoice>
   now?: () => Date
   newId?: () => string
   sleep?: (ms: number) => Promise<void>
-}
-
-const emptyState = (cardholderId?: string): DemoState => ({ cardholderId, cards: {}, invoices: [] })
-
-async function loadState(path: string): Promise<DemoState> {
-  try {
-    return { ...emptyState(), ...(JSON.parse(await readFile(path, 'utf8')) as DemoState) }
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return emptyState()
-    throw error
-  }
 }
 
 // The offer an invoice belongs to: same vendor. ingestInvoice then checks category and currency
@@ -96,11 +72,11 @@ export async function createReadyCardholder(api: SessionApi, sleep: (ms: number)
 
 export async function openSession(deps: SessionDeps) {
   const { api, store } = deps
-  const statePath = deps.statePath ?? 'data/state.json'
+  const stateStore = deps.stateStore ?? new FileStateStore()
   const invoices = deps.invoices ?? INVOICES
   const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)))
-  const state = await loadState(statePath)
-  const save = () => writeJsonAtomic(statePath, state)
+  const state = await stateStore.load()
+  const save = () => stateStore.save(state)
 
   const ctx: PolicyContext = { position: cashPosition, offers: { ...OFFERS }, now: deps.now, newId: deps.newId }
   // Replay the invoices already received so a restart keeps the current prices
@@ -110,15 +86,19 @@ export async function openSession(deps: SessionDeps) {
     if (invoice && offerId) ingestInvoice(ctx, offerId, invoice)
   }
 
-  if (!state.cardholderId) {
-    state.cardholderId = await createReadyCardholder(api, sleep)
-    await save()
+  // Created on the first card, not on open: on Vercel every request opens a session
+  async function cardholderId(): Promise<string> {
+    if (!state.cardholderId) {
+      state.cardholderId = await createReadyCardholder(api, sleep)
+      await save()
+    }
+    return state.cardholderId
   }
   const executor = createExecutor({
     store,
     cards: api,
     ctx,
-    cardholderId: state.cardholderId,
+    cardholderId,
     createdBy: `${COMPANY.founder.first_name} ${COMPANY.founder.last_name}`,
   })
 

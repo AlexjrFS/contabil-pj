@@ -32,5 +32,12 @@ This repo is separate from the production Contabil app (`../contabil`). Never ad
 - Card update (full controls) and freeze/unfreeze (`card_status`) verified
 - **Open:** `POST /simulation/issuing/create` returns `400 bad_request "failed to process transaction"` for every body tried (with/without version header, MCC, 43-char merchant_info, single/two phase, card_number) and even on a card with no currency/MCC controls. To ask in Slack #help (support is Slack-only during the hackathon)
 
+## Hosting
+- **Vercel** (`api/index.ts` → `src/server/vercel.ts`): fetch-style handler from `src/server/app.ts`; every API path is rewritten to `/api` (`vercel.json`), static files (the web app later) come from `public/`. Each request opens a session over **Upstash Redis** (`RedisProposalStore`, `RedisStateStore`); the function throws if the Redis vars or `DEMO_TOKEN` are missing. Never fall back to disk there
+- Local: `npm run server` (node:http adapter, files in `data/`, `DEMO_TOKEN` optional)
+- The executor's in-flight map is per process. On serverless a double tap may reach two instances: both create with the same `request_id`, Airwallex rejects the second, and `findCardByDecision` returns the first card. That is the intended path; don't add locking for it
+- The cardholder is created lazily on the first card (a request must not block on cardholder polling)
+- App UI is in **English** (judges, agent and invoice are English), unlike the production Contabil app
+
 ## Before finishing a task
 `npm run typecheck` and `npm test`. After changing anything under `src/airwallex/`, also `npm run smoke` (needs `.env`).

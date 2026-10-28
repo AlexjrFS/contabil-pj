@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": "22.x"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",
+    "@upstash/redis": "^1.40.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {

@@ -1,4 +1,5 @@
-// Where proposals live between "proposed", "approved" and "executed". A JSON file is enough for a single-user demo.
+// Where proposals live between "proposed", "approved" and "executed". A JSON file locally, Redis on Vercel
+// (serverless functions keep no disk between requests).
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import type { Proposal, ProposalStore } from './proposals.js'
@@ -79,4 +80,42 @@ export async function writeJsonAtomic(path: string, value: unknown): Promise<voi
   const tmp = `${path}.tmp`
   await writeFile(tmp, JSON.stringify(value, null, 2))
   await rename(tmp, path)
+}
+
+// The few Redis commands we use; @upstash/redis satisfies it and tests pass a fake
+export interface RedisLike {
+  hset(key: string, values: Record<string, unknown>): Promise<unknown>
+  hget(key: string, field: string): Promise<unknown>
+  hvals(key: string): Promise<unknown[]>
+  del(key: string): Promise<unknown>
+  get(key: string): Promise<unknown>
+  set(key: string, value: unknown): Promise<unknown>
+}
+
+// Upstash parses JSON-looking strings on read; accept either form
+export const fromRedis = <T>(value: unknown): T | undefined =>
+  value === null || value === undefined ? undefined : ((typeof value === 'string' ? JSON.parse(value) : value) as T)
+
+// One hash field per proposal: saving one never overwrites another, even across function instances
+export class RedisProposalStore implements ProposalStore {
+  constructor(
+    private readonly redis: RedisLike,
+    private readonly key = 'contabil-pj:proposals',
+  ) {}
+
+  async get(id: string) {
+    return fromRedis<Proposal>(await this.redis.hget(this.key, id))
+  }
+
+  async save(proposal: Proposal) {
+    await this.redis.hset(this.key, { [proposal.id]: JSON.stringify(proposal) })
+  }
+
+  async list() {
+    return (await this.redis.hvals(this.key)).map((v) => fromRedis<Proposal>(v)!)
+  }
+
+  async clear() {
+    await this.redis.del(this.key)
+  }
 }

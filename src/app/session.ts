@@ -126,6 +126,10 @@ export async function openSession(deps: SessionDeps) {
       conversationContext(
         AS_OF,
         Object.entries(state.cards).map(([offerId, card]) => ({ offerId, vendor: ctx.offers[offerId]?.vendor, ...card })),
+        state.invoices.flatMap((id) => {
+          const invoice = invoices[id]
+          return invoice ? [{ invoiceId: id, vendor: invoice.vendor, effectiveDate: invoice.effectiveDate }] : []
+        }),
       ),
 
     // The founder's tap on "Approve": approval and execution in one step

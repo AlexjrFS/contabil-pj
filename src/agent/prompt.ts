@@ -19,9 +19,19 @@ export interface CardSummary {
   plan: string
 }
 
-export function conversationContext(asOf: string, cards: CardSummary[] = []): string {
+export interface InvoiceSummary {
+  invoiceId: string
+  vendor: string
+  effectiveDate: string
+}
+
+// Ids the model needs and can't guess: the cards issued and the supplier invoices received
+export function conversationContext(asOf: string, cards: CardSummary[] = [], invoices: InvoiceSummary[] = []): string {
   const lines = [`Today, for the cash policy, is ${asOf}.`]
   if (cards.length === 0) lines.push('No cards have been issued yet.')
   for (const c of cards) lines.push(`Card issued for offer "${c.offerId}" (${c.vendor ?? 'unknown vendor'}): ${c.cardId}, ${c.plan} plan.`)
+  for (const i of invoices) {
+    lines.push(`Supplier invoice received: "${i.invoiceId}" from ${i.vendor}, effective ${i.effectiveDate} (read it with read_invoice).`)
+  }
   return lines.join(' ')
 }

@@ -74,6 +74,7 @@ test('a restart keeps the card, the cardholder and the prices from received invo
     const { proposal } = await proposeVia(first, 'propose_card', { offer_id: 'framewise' })
     await first.approve(proposal!.id, proposal!.fingerprint)
     assert.equal((await first.receiveInvoice(PRICE_INCREASE.id)).kind, 'updated')
+    assert.match(first.context(), /Supplier invoice received: "framewise-2026-12" from Framewise Inc\./)
 
     const second = await open(dir, api)
     assert.equal(calls.holders, 1)

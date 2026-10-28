@@ -34,6 +34,17 @@
         }
       ]
     ],
-    "owner": "alex0812"
+    "owner": "alex0812",
+    "extra": {
+      "eas": {
+        "projectId": "478e740e-eddb-47b6-873a-32bb00a2d00a"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/478e740e-eddb-47b6-873a-32bb00a2d00a"
+    }
   }
 }

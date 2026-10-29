@@ -11,8 +11,9 @@ const HEIGHT = 128
 export function RunwayChart({ weeks, reserveFloor, currency }: { weeks: WeekProjection[]; reserveFloor: number; currency: string }) {
   const { colors } = useTheme()
   const lowestWeek = weeks.reduce((min, w) => (w.lowest < min.lowest ? w : min), weeks[0]!)
-  const [selected, setSelected] = useState(lowestWeek.week)
-  const week = weeks.find((w) => w.week === selected) ?? lowestWeek
+  // Until the founder taps a week, follow the lowest one, which moves when a card adds its charges
+  const [selected, setSelected] = useState<number | null>(null)
+  const week = weeks.find((w) => w.week === (selected ?? lowestWeek.week)) ?? lowestWeek
   const top = Math.max(reserveFloor, ...weeks.map((w) => w.lowest)) * 1.08
   const y = (value: number) => (Math.max(value, 0) / top) * HEIGHT
 

@@ -3,10 +3,12 @@ import { createNativeStackNavigator, type NativeStackScreenProps } from '@react-
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { CardScreen } from '../features/card/screens/CardScreen'
 import { ChatScreen } from '../features/chat/screens/ChatScreen'
+import { HomeScreen } from '../features/home/screens/HomeScreen'
 import { SettingsScreen } from '../features/settings/screens/SettingsScreen'
 import { useTheme } from '../theme/ThemeContext'
 
 export type RootStackParamList = {
+  Home: undefined
   Chat: undefined
   Card: undefined
   Settings: undefined
@@ -35,11 +37,12 @@ export function RootNavigator() {
     <NavigationContainer
       theme={{ ...base, colors: { ...base.colors, background: colors.background, card: colors.surface, text: colors.text, primary: colors.primary, border: colors.border } }}
     >
-      <Stack.Navigator>
+      <Stack.Navigator initialRouteName="Home">
+        <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false, title: 'Home' }} />
         <Stack.Screen
           name="Chat"
           component={ChatScreen}
-          options={({ navigation }) => ({ title: 'Contabil PJ', headerRight: () => <HeaderLinks navigation={navigation} /> })}
+          options={({ navigation }) => ({ title: 'Finance agent', headerRight: () => <HeaderLinks navigation={navigation} /> })}
         />
         <Stack.Screen name="Card" component={CardScreen} options={{ title: 'Virtual card' }} />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />

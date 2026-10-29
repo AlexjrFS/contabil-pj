@@ -21,7 +21,8 @@ const OUTCOMES: Record<string, string> = {
   failed: 'Airwallex did not accept it.',
 }
 
-export function ProposalCard({ proposal: initial }: { proposal: Proposal }) {
+// onDecided lets the home screen refresh the card and cash once the founder has decided
+export function ProposalCard({ proposal: initial, onDecided }: { proposal: Proposal; onDecided?: (p: Proposal) => void }) {
   const { colors } = useTheme()
   const [proposal, setProposal] = useState(initial)
   const [busy, setBusy] = useState<'approve' | 'reject' | null>(null)
@@ -32,7 +33,9 @@ export function ProposalCard({ proposal: initial }: { proposal: Proposal }) {
     setBusy(kind)
     setError(null)
     try {
-      setProposal(kind === 'approve' ? await api.approve(proposal) : await api.reject(proposal))
+      const decided = kind === 'approve' ? await api.approve(proposal) : await api.reject(proposal)
+      setProposal(decided)
+      onDecided?.(decided)
     } catch (e) {
       // A 409 means the proposal moved on (stale, expired, already decided)
       setError(e instanceof ApiError ? e.message : 'Could not reach the server')

@@ -66,6 +66,11 @@ export interface CardView {
   card: {
     card_id: string
     card_status: string
+    // Masked by Airwallex (************5225); the app shows the last four only
+    card_number?: string
+    brand?: string
+    name_on_card?: string
+    nick_name?: string
     authorization_controls?: {
       transaction_limits: { currency?: string; limits: Limit[] }
       allowed_currencies?: string[]
@@ -84,6 +89,32 @@ export interface CardView {
     transaction_date: string
     failure_reason?: string
   }[]
+}
+
+export interface Flow {
+  date: string
+  // Cents; positive = money in
+  amount: number
+  label: string
+}
+
+export interface WeekProjection {
+  week: number
+  start: string
+  end: string
+  lowest: number
+  closing: number
+  breach: boolean
+}
+
+// The policy's view of the company's cash, with the issued cards' charges already counted
+export interface CashView {
+  currency: string
+  asOf: string
+  balance: number
+  reserveFloor: number
+  weeks: WeekProjection[]
+  upcoming: Flow[]
 }
 
 export type ChargeKind = 'monthly' | 'annual' | 'other_currency' | 'other_category'

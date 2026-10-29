@@ -62,7 +62,7 @@ The executor is idempotent: the proposal id is the `request_id`. Airwallex rejec
 
 | Layer | What runs there |
 |---|---|
-| App (`app/`) | Expo SDK 58, React Native: chat, confirmation cards, card screen with test charges, scenario controls. Android and iOS (Expo Go or a build) and web |
+| App (`app/`) | Expo SDK 58, React Native: a home screen with the company's cash, the 12-week projection against the reserve, the issued card and pending approvals; the agent chat with confirmation cards; the card screen with test charges; scenario controls. Android and iOS (Expo Go or a build) and web |
 | API (`api/`, `src/server/`) | Vercel Functions, one fetch handler (`Request` → `Response`); the chat streams NDJSON. Every route except `/health` requires a demo token |
 | Agent (`src/agent/`) | Claude through the Anthropic SDK tool runner, **Claude Haiku 5.5** by default (it matched Opus 5.5 on the demo scenes at a fraction of the cost and latency; set `ANTHROPIC_MODEL` to change it) |
 | Decisions (`src/policy/`, `src/approvals/`) | Plain TypeScript, integer cents, no model involved |
@@ -109,7 +109,7 @@ Deploying your own copy: link a Vercel project, add Upstash Redis from the Verce
 | `src/agent/tools.ts` | The model's tools: read, or propose by id |
 | `src/agent/chat.ts`, `src/agent/prompt.ts` | Tool-runner loop (streaming) and system prompt |
 | `src/app/session.ts`, `src/app/state.ts` | Demo session: shared policy context, executor, cardholder, issued cards, received invoices |
-| `src/server/app.ts` | HTTP API: chat, approve/reject, card, invoice arrival, named test charges, reset |
+| `src/server/app.ts` | HTTP API: chat, approve/reject, cash projection, card, invoice arrival, named test charges, reset |
 | `src/server/vercel.ts`, `api/index.ts` | Vercel entry: Redis-backed session per request |
 | `src/airwallex/` | REST client (token cache, 429 backoff, concurrency cap) and typed endpoint wrappers |
 | `src/demo/` | Synthetic company, offer and the injected invoice |

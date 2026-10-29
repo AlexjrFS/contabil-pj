@@ -2,6 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "outputDirectory": "public",
   "rewrites": [
-    { "source": "/(health|chat|state|proposals|cards|invoices|charges|demo)(.*)", "destination": "/api" }
+    { "source": "/(health|chat|state|cash|proposals|cards|invoices|charges|demo)(.*)", "destination": "/api" }
   ]
 }

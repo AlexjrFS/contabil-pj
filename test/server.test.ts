@@ -84,6 +84,12 @@ test('approve needs the fingerprint that was shown, then issues the card', async
     assert.equal(wrong.body.error, 'fingerprint_mismatch')
     assert.equal(fake.calls.creates, 0)
 
+    const before = (await call('GET', '/cash')).body
+    assert.equal(before.balance, 1_800_000)
+    assert.equal(before.reserveFloor, 800_000)
+    assert.equal(before.weeks.length, 12)
+    assert.ok(!before.upcoming.some((f: { label: string }) => f.label.includes('Framewise')))
+
     const ok = await call('POST', `/proposals/${proposal.id}/approve`, { fingerprint: proposal.fingerprint })
     assert.equal(ok.status, 200)
     assert.equal(ok.body.status, 'executed')
@@ -92,6 +98,9 @@ test('approve needs the fingerprint that was shown, then issues the card', async
     assert.equal(card.cardId, 'card-1')
     assert.deepEqual(card.limits.limits[1], { amount: 600, interval: 'MONTHLY', remaining: 600 })
     assert.deepEqual(card.transactions, [])
+    // The issued plan now shows up in the cash picture
+    const after = (await call('GET', '/cash')).body
+    assert.deepEqual(after.upcoming[0], { date: '2026-11-02', amount: -60_000, label: 'Framewise Team (monthly)' })
     assert.equal((await call('GET', '/proposals')).body.length, 1)
     assert.equal((await call('POST', `/proposals/${proposal.id}/approve`, { fingerprint: proposal.fingerprint })).status, 409)
   })

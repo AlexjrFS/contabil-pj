@@ -16,6 +16,7 @@ import {
 } from '../approvals/proposals.js'
 import { AS_OF, cashPosition, COMPANY, OFFERS } from '../demo/company.js'
 import { INVOICES, type Invoice } from '../demo/invoices.js'
+import { planCharges, projectWeeks } from '../policy/cash.js'
 import { toMajor, type Cents } from '../policy/money.js'
 import { emptyState, FileStateStore, type StateStore } from './state.js'
 
@@ -156,6 +157,28 @@ export async function openSession(deps: SessionDeps) {
         await save()
       }
       return result
+    },
+
+    // The founder's cash as the policy sees it: balance, reserve, and the next weeks including what the issued
+    // cards already commit. Read-only; the home screen draws it
+    cash() {
+      const position = ctx.position()
+      const committed = Object.entries(state.cards).flatMap(([offerId, card]) => {
+        const offer = ctx.offers[offerId]
+        return offer ? planCharges(offer, card.plan) : []
+      })
+      const upcoming = [...position.flows, ...committed]
+        .filter((f) => f.date >= position.asOf)
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(0, 6)
+      return {
+        currency: position.currency,
+        asOf: position.asOf,
+        balance: position.balance,
+        reserveFloor: position.reserveFloor,
+        weeks: projectWeeks(position, committed),
+        upcoming,
+      }
     },
 
     // The card as Airwallex sees it: controls, what is left this month, and its authorizations (approved and declined)

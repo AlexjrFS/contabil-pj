@@ -2,7 +2,7 @@
 // proposal it showed, and triggers named test charges.
 import { fetch } from 'expo/fetch'
 import { loadSettings } from '../config/settings'
-import type { CardView, ChargeKind, ChargeResult, ChatEvent, ChatMessage, DemoState, Proposal } from './types'
+import type { CardView, CashView, ChargeKind, ChargeResult, ChatEvent, ChatMessage, DemoState, Proposal } from './types'
 
 export class ApiError extends Error {
   constructor(
@@ -32,6 +32,8 @@ async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown):
 export const api = {
   health: () => request<{ ok: boolean; model: string }>('GET', '/health'),
   state: () => request<DemoState>('GET', '/state'),
+  cash: () => request<CashView>('GET', '/cash'),
+  proposals: () => request<Proposal[]>('GET', '/proposals'),
   approve: (proposal: Proposal) =>
     request<Proposal>('POST', `/proposals/${proposal.id}/approve`, { fingerprint: proposal.fingerprint }),
   reject: (proposal: Proposal) => request<Proposal>('POST', `/proposals/${proposal.id}/reject`),

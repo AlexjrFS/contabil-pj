@@ -1,40 +1,54 @@
-// Light and dark colors, following the system setting
+// Light and dark colors, following the system setting. The palette comes from the logo: ivory, espresso
+// (the splash background) and gold. `ink` is the face of the virtual card in both modes.
 import { createContext, useContext, type ReactNode } from 'react'
-import { useColorScheme } from 'react-native'
+import { Platform, useColorScheme } from 'react-native'
 
 const light = {
-  background: '#F6F7F9',
-  surface: '#FFFFFF',
-  border: '#E3E6EA',
-  text: '#14171A',
-  muted: '#5E6670',
-  primary: '#0F766E',
+  background: '#F4F0E8',
+  surface: '#FFFDF9',
+  border: '#E4DCCD',
+  text: '#1C140C',
+  muted: '#6E6355',
+  primary: '#86601C',
   onPrimary: '#FFFFFF',
-  userBubble: '#0F766E',
-  onUserBubble: '#FFFFFF',
-  success: '#15803D',
-  danger: '#B42318',
-  warning: '#B45309',
-  chip: '#E8F3F2',
+  userBubble: '#2A1E12',
+  onUserBubble: '#F6EEDD',
+  success: '#2F7A3E',
+  danger: '#B3261E',
+  warning: '#9A5B0B',
+  chip: '#EFE6D3',
+  ink: '#130B05',
+  onInk: '#F3E9D6',
+  inkMuted: '#A8987E',
+  gold: '#D4A64A',
+  bar: '#CDBFA6',
 }
 
 export type Colors = typeof light
 
 const dark: Colors = {
-  background: '#0E1114',
-  surface: '#171B20',
-  border: '#2A3038',
-  text: '#ECEFF2',
-  muted: '#9AA3AD',
-  primary: '#2DB3A6',
-  onPrimary: '#06201D',
-  userBubble: '#1D6F68',
-  onUserBubble: '#FFFFFF',
-  success: '#4ADE80',
-  danger: '#F87171',
-  warning: '#FBBF24',
-  chip: '#1C2A29',
+  background: '#130B05',
+  surface: '#1E150D',
+  border: '#33271B',
+  text: '#F3E9D6',
+  muted: '#A8987E',
+  primary: '#D4A64A',
+  onPrimary: '#1C140C',
+  userBubble: '#3A2B19',
+  onUserBubble: '#F3E9D6',
+  success: '#6FCF7F',
+  danger: '#F08A80',
+  warning: '#E6B04C',
+  chip: '#2A1F14',
+  ink: '#2A1D10',
+  onInk: '#F3E9D6',
+  inkMuted: '#A8987E',
+  gold: '#D4A64A',
+  bar: '#5A4A35',
 }
+
+// System serif for headline numbers: no font download, so it works in Expo Go and on the installed build
+export const displayFont = Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia, "Times New Roman", serif' })
 
 const ThemeContext = createContext<{ colors: Colors; dark: boolean }>({ colors: light, dark: false })
 

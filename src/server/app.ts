@@ -124,6 +124,8 @@ export function createHandler(getSession: () => Promise<Session>, options: AppOp
       return json(200, { ...session.state(), offers })
     }
 
+    if (is('GET', 'cash')) return json(200, session.cash())
+
     if (is('GET', 'proposals')) {
       const all = (await session.store.list()).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       return json(200, all.map(describeProposal))

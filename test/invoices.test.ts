@@ -77,7 +77,7 @@ test('an approval given before the invoice arrived goes stale instead of running
   const { proposal } = (await proposeCard(store, ctx, 'framewise')) as { proposal: Proposal }
   await approve(store, ctx, proposal.id, proposal.fingerprint)
   ingestInvoice(ctx, 'framewise', PRICE_INCREASE)
-  const executor = createExecutor({ store, cards: noCards, ctx, cardholderId: 'holder-1', createdBy: 'Ana Souza' })
+  const executor = createExecutor({ store, cards: noCards, ctx, cardholderId: 'holder-1', createdBy: 'Alex Sacramento' })
   assert.equal((await executor.execute(proposal.id)).status, 'stale')
 })
 

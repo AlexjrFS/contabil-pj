@@ -211,10 +211,13 @@ export async function openSession(deps: SessionDeps) {
       })
     },
 
-    // Between takes of the video: forget proposals, cards and invoices; keep the cardholder
-    async reset() {
+    // Between takes of the video: forget proposals, cards and invoices. The cardholder is kept unless asked
+    // otherwise (e.g. after the founder's name changed); a new one is then created with the next card
+    async reset(options: { newCardholder?: boolean } = {}) {
       await store.clear()
-      Object.assign(state, emptyState(state.cardholderId))
+      const keep = options.newCardholder ? undefined : state.cardholderId
+      delete state.cardholderId
+      Object.assign(state, emptyState(keep))
       ctx.offers = { ...OFFERS }
       await save()
     },

@@ -79,7 +79,7 @@ async function approvedCardProposal() {
   const proposal = (result as { proposal: Proposal }).proposal
   await approve(env.store, env.ctx, proposal.id, proposal.fingerprint)
   const fake = fakeCards()
-  const executor = createExecutor({ store: env.store, cards: fake.api, ctx: env.ctx, cardholderId: 'holder-1', createdBy: 'Ana Souza' })
+  const executor = createExecutor({ store: env.store, cards: fake.api, ctx: env.ctx, cardholderId: 'holder-1', createdBy: 'Alex Sacramento' })
   return { ...env, proposal, fake, executor }
 }
 
@@ -162,7 +162,7 @@ test('a pending or rejected proposal never reaches Airwallex', async () => {
   const { store, ctx } = setup()
   const { proposal } = (await proposeCard(store, ctx, 'framewise')) as { proposal: Proposal }
   const fake = fakeCards()
-  const executor = createExecutor({ store, cards: fake.api, ctx, cardholderId: 'holder-1', createdBy: 'Ana Souza' })
+  const executor = createExecutor({ store, cards: fake.api, ctx, cardholderId: 'holder-1', createdBy: 'Alex Sacramento' })
   await assert.rejects(executor.execute(proposal.id), { code: 'not_approved' })
   await reject(store, ctx, proposal.id)
   await assert.rejects(executor.execute(proposal.id), { code: 'not_approved' })
@@ -215,7 +215,7 @@ test('a failed run can be retried and keeps its request_id', async () => {
 test('a retry after the card was already created finds it instead of creating another', async () => {
   const { proposal, fake, executor, store } = await approvedCardProposal()
   // The first call reached Airwallex but the process stopped before saving the result
-  await fake.api.createCard(cardRequest({ id: proposal.id, plan: 'monthly', offer: SAAS_OFFER, revisitOn: null }, 'holder-1', 'Ana Souza'))
+  await fake.api.createCard(cardRequest({ id: proposal.id, plan: 'monthly', offer: SAAS_OFFER, revisitOn: null }, 'holder-1', 'Alex Sacramento'))
   await store.save({ ...(await store.get(proposal.id))!, status: 'executing' })
   fake.fail.create = new AirwallexError(400, 'invalid_argument', 'The provided ID is already associated with a previous request', {
     source: 'request_id',
@@ -235,7 +235,7 @@ test('a price increase needs its own approval, then resends the full controls', 
   assert.equal((proposal.action as { terms: { amount: number } }).terms.amount, cents(690))
 
   const fake = fakeCards()
-  const executor = createExecutor({ store: env.store, cards: fake.api, ctx: env.ctx, cardholderId: 'holder-1', createdBy: 'Ana Souza' })
+  const executor = createExecutor({ store: env.store, cards: fake.api, ctx: env.ctx, cardholderId: 'holder-1', createdBy: 'Alex Sacramento' })
   await assert.rejects(executor.execute(proposal.id), { code: 'not_approved' })
   await approve(env.store, env.ctx, proposal.id, proposal.fingerprint)
   await executor.execute(proposal.id)
@@ -264,7 +264,7 @@ test('freezing a card is a proposal too', async () => {
   const proposal = await proposeFreeze(env.store, env.ctx, 'card-1', 'Suspicious invoice')
   await approve(env.store, env.ctx, proposal.id, proposal.fingerprint)
   const fake = fakeCards()
-  const executor = createExecutor({ store: env.store, cards: fake.api, ctx: env.ctx, cardholderId: 'holder-1', createdBy: 'Ana Souza' })
+  const executor = createExecutor({ store: env.store, cards: fake.api, ctx: env.ctx, cardholderId: 'holder-1', createdBy: 'Alex Sacramento' })
   await executor.execute(proposal.id)
   assert.deepEqual(fake.updated, [{ id: 'card-1', input: { card_status: 'INACTIVE' } }])
 })

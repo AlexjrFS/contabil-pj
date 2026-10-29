@@ -63,7 +63,7 @@ export function HomeScreen() {
           <View style={styles.brand}>
             <Image source={require('../../../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
             <View>
-              <Text style={[styles.company, { color: colors.text }]}>Lumen Studio</Text>
+              <Text style={[styles.company, { color: colors.text }]}>Halcyon</Text>
               <Text style={[styles.product, { color: colors.muted }]}>Contabil PJ</Text>
             </View>
           </View>

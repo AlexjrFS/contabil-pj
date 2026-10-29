@@ -116,7 +116,7 @@ test('card request reuses the decision id as request_id and records the revisit 
   const request = cardRequest(
     { id: 'decision-1', plan: 'monthly', offer: SAAS_OFFER, revisitOn: '2027-01-31' },
     'holder-1',
-    'Ana Souza',
+    'Alex Sacramento',
   )
   assert.equal(request.request_id, 'decision-1')
   assert.equal(request.form_factor, 'VIRTUAL')

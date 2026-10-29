@@ -8,7 +8,7 @@ Built for the [Airwallex Agentic Banking Hackathon](https://airwallex.hackereart
 
 ## The demo in one minute
 
-Lumen Studio, a five-person design studio, wants Framewise Team: **$600/month or $5,904/year** (18% off).
+Halcyon, a small Brazilian tech company, wants the Framewise Team design tool: **$600/month or $5,904/year** (18% off).
 
 1. **"Annual or monthly?"** The cash policy projects 12 weeks. Annual saves $1,296 a year but pushes the balance below the $8,000 reserve in week 7 (a quarterly tax payment lands in December). The policy picks **monthly** and sets a date to revisit annual.
 2. **The agent proposes a card.** The app shows a confirmation card with the exact terms: $600 per charge and per month, USD only, merchant category 5734 (software). Nothing happens until the founder taps **Approve**.

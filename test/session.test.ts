@@ -130,5 +130,12 @@ test('reset forgets proposals, cards and invoices but keeps the cardholder', asy
     assert.deepEqual(await session.store.list(), [])
     await open(dir, api)
     assert.equal(calls.holders, 1)
+
+    // Asked for a new cardholder: forgotten now, created again with the next card
+    await session.reset({ newCardholder: true })
+    assert.deepEqual(session.state(), { cards: {}, invoices: [] })
+    const again = await proposeVia(session, 'propose_card', { offer_id: 'framewise' })
+    await session.approve(again.proposal!.id, again.proposal!.fingerprint)
+    assert.equal(calls.holders, 2)
   })
 })

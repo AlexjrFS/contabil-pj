@@ -158,7 +158,8 @@ export function createHandler(getSession: () => Promise<Session>, options: AppOp
     }
 
     if (is('POST', 'demo', 'reset')) {
-      await session.reset()
+      const { new_cardholder } = await readJson(request)
+      await session.reset({ newCardholder: new_cardholder === true })
       return json(200, session.state())
     }
 

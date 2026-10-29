@@ -124,7 +124,7 @@ export function ChatScreen() {
         onContentSizeChange={() => list.current?.scrollToEnd({ animated: true })}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>Lumen Studio · finance agent</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>Halcyon · finance agent</Text>
             <Text style={[styles.emptyText, { color: colors.muted }]}>
               The model explains. Code decides. The card enforces. Nothing moves until you approve it.
             </Text>

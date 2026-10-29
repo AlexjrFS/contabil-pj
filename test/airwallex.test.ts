@@ -142,13 +142,13 @@ test('cardholder create sends the REST shape with consent', async () => {
   const fake = fakeAirwallex(() => ({ status: 202, body: { cardholder_id: 'h1', status: 'PENDING' } }))
   await airwallexApi(client(fake.fetchFn)).createIndividualCardholder({
     email: 'a@example.com',
-    first_name: 'Ana',
-    last_name: 'Souza',
+    first_name: 'Alex',
+    last_name: 'Sacramento',
     date_of_birth: '1990-01-01',
     address: { line1: '1 Main St', city: 'San Francisco', postcode: '94105', country: 'US', state: 'CA' },
   })
   const body = fake.calls[1]!.body as any
   assert.equal(body.type, 'INDIVIDUAL')
   assert.equal(body.individual.express_consent_obtained, 'yes')
-  assert.deepEqual(body.individual.name, { first_name: 'Ana', last_name: 'Souza' })
+  assert.deepEqual(body.individual.name, { first_name: 'Alex', last_name: 'Sacramento' })
 })

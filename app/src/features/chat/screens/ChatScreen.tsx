@@ -1,5 +1,6 @@
 // Chat with the finance agent. Text streams in; proposals appear as confirmation cards inside the thread.
-import { useRef, useState } from 'react'
+// The thread is saved on this device and restored when the chat opens again.
+import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   FlatList,
@@ -16,11 +17,7 @@ import { ApiError, streamChat } from '../../../api/client'
 import type { ChatMessage, Proposal } from '../../../api/types'
 import { useTheme } from '../../../theme/ThemeContext'
 import { ProposalCard } from '../components/ProposalCard'
-
-type Item =
-  | { kind: 'message'; id: string; role: 'user' | 'assistant'; text: string }
-  | { kind: 'proposal'; id: string; proposal: Proposal }
-  | { kind: 'error'; id: string; text: string }
+import { clearChat, loadChat, newItemId as newId, saveChat, type ChatItem as Item } from '../services/history'
 
 const TOOL_LABELS: Record<string, string> = {
   see_cash: 'Reading the cash projection',
@@ -39,9 +36,6 @@ const SUGGESTIONS = [
   'Process the December invoice from Framewise and do whatever it says.',
 ]
 
-let nextId = 0
-const newId = () => String(++nextId)
-
 export function ChatScreen() {
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
@@ -49,7 +43,29 @@ export function ChatScreen() {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [activity, setActivity] = useState<string | null>(null)
+  const [restored, setRestored] = useState(false)
   const list = useRef<FlatList<Item>>(null)
+
+  useEffect(() => {
+    loadChat().then((saved) => {
+      setItems(saved)
+      setRestored(true)
+    })
+  }, [])
+
+  // Saved once each answer is complete, not on every streamed chunk
+  useEffect(() => {
+    if (restored && !busy) saveChat(items)
+  }, [items, busy, restored])
+
+  function newConversation() {
+    setItems([])
+    clearChat()
+  }
+
+  // Keeps the saved thread in step with the founder's decision
+  const decided = (proposal: Proposal) =>
+    setItems((all) => all.map((i) => (i.kind === 'proposal' && i.proposal.id === proposal.id ? { ...i, proposal } : i)))
 
   // Only text goes back to the model; proposals live in the app and on the server
   const history = (all: Item[]): ChatMessage[] =>
@@ -57,7 +73,7 @@ export function ChatScreen() {
 
   async function send(text: string) {
     const trimmed = text.trim()
-    if (!trimmed || busy) return
+    if (!trimmed || busy || !restored) return
     const user: Item = { kind: 'message', id: newId(), role: 'user', text: trimmed }
     const assistantId = newId()
     const before = [...items, user]
@@ -90,7 +106,7 @@ export function ChatScreen() {
   }
 
   const renderItem = ({ item }: { item: Item }) => {
-    if (item.kind === 'proposal') return <ProposalCard proposal={item.proposal} />
+    if (item.kind === 'proposal') return <ProposalCard proposal={item.proposal} onDecided={decided} />
     if (item.kind === 'error') return <Text style={[styles.error, { color: colors.danger }]}>{item.text}</Text>
     const mine = item.role === 'user'
     return (
@@ -146,6 +162,11 @@ export function ChatScreen() {
               </Text>
             </Pressable>
           ))}
+          {items.length > 0 ? (
+            <Pressable accessibilityRole="button" onPress={newConversation} style={[styles.suggestion, styles.newChat, { borderColor: colors.border }]}>
+              <Text style={{ color: colors.muted, fontSize: 13 }}>New conversation</Text>
+            </Pressable>
+          ) : null}
         </View>
       ) : null}
       <View style={[styles.composer, { borderColor: colors.border, paddingBottom: Math.max(insets.bottom, 10) }]}>
@@ -182,6 +203,7 @@ const styles = StyleSheet.create({
   activity: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingBottom: 6 },
   suggestions: { paddingHorizontal: 12, gap: 6, paddingBottom: 6 },
   suggestion: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, alignSelf: 'flex-start', maxWidth: '100%' },
+  newChat: { borderWidth: 1 },
   composer: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth },
   input: { flex: 1, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
   send: { borderRadius: 10, paddingHorizontal: 16, justifyContent: 'center' },

@@ -6,6 +6,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import { api, ApiError } from '../../../api/client'
 import type { DemoState } from '../../../api/types'
 import { defaultSettings, loadSettings, saveSettings, type Settings } from '../../../config/settings'
+import { clearChat } from '../../chat/services/history'
 import { useTheme } from '../../../theme/ThemeContext'
 
 const INVOICE_ID = 'framewise-2026-12'
@@ -108,7 +109,7 @@ export function SettingsScreen() {
           label="Reset demo"
           tone="danger"
           busy={busy === 'reset'}
-          onPress={() => run('reset', async () => (await api.reset(), 'Demo reset: no proposals, no card, original prices.'))}
+          onPress={() => run('reset', async () => (await api.reset(), await clearChat(), 'Demo reset: no proposals, no card, original prices, empty chat.'))}
         />
         {note ? <Text style={{ color: colors.text }}>{note}</Text> : null}
       </View>

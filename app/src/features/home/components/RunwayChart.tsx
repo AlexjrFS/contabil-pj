@@ -1,7 +1,8 @@
 // The cash policy made visible: the lowest balance of each of the next 12 weeks against the reserve floor.
 // One series, so no legend; weeks below the reserve are red and say so in the readout. Tap a week to read it.
 import { useState } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
+import { Text } from '../../../components/Text'
 import type { WeekProjection } from '../../../api/types'
 import { useTheme } from '../../../theme/ThemeContext'
 import { formatCents, formatDay, formatWhole } from '../../../utils/format'

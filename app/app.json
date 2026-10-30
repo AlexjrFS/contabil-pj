@@ -32,7 +32,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#130B05"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "owner": "alex0812",
     "extra": {

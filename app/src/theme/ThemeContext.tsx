@@ -1,7 +1,8 @@
 // Light and dark colors, following the system setting. The palette comes from the logo: ivory, espresso
 // (the splash background) and gold. `ink` is the face of the virtual card in both modes.
 import { createContext, useContext, type ReactNode } from 'react'
-import { Platform, useColorScheme } from 'react-native'
+import { useColorScheme } from 'react-native'
+import { fonts } from './fonts'
 
 const light = {
   background: '#F4F0E8',
@@ -47,8 +48,8 @@ const dark: Colors = {
   bar: '#5A4A35',
 }
 
-// System serif for headline numbers: no font download, so it works in Expo Go and on the installed build
-export const displayFont = Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia, "Times New Roman", serif' })
+// IBM Plex Serif for headline numbers (see fonts.ts)
+export const displayFont = fonts.display
 
 const ThemeContext = createContext<{ colors: Colors; dark: boolean }>({ colors: light, dark: false })
 

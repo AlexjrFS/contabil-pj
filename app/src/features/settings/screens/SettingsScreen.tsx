@@ -2,11 +2,13 @@
 // arriving, and a reset between takes.
 import { useFocusEffect } from '@react-navigation/native'
 import { useCallback, useState } from 'react'
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native'
+import { Text } from '../../../components/Text'
 import { api, ApiError } from '../../../api/client'
 import type { DemoState } from '../../../api/types'
 import { defaultSettings, loadSettings, saveSettings, type Settings } from '../../../config/settings'
 import { clearConversations } from '../../chat/services/history'
+import { fonts } from '../../../theme/fonts'
 import { useTheme } from '../../../theme/ThemeContext'
 
 const INVOICE_ID = 'framewise-2026-12'
@@ -136,6 +138,6 @@ const styles = StyleSheet.create({
   panel: { borderWidth: 1, borderRadius: 14, padding: 14, gap: 8 },
   title: { fontSize: 17, fontWeight: '700' },
   label: { fontSize: 12, fontWeight: '600', marginTop: 4 },
-  input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9, fontSize: 14 },
+  input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9, fontSize: 14, fontFamily: fonts.regular },
   button: { borderWidth: 1, borderRadius: 10, paddingVertical: 11, alignItems: 'center', marginTop: 4 },
 })

@@ -1,11 +1,13 @@
 import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native'
 import { createNativeStackNavigator, type NativeStackScreenProps } from '@react-navigation/native-stack'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
+import { Text } from '../components/Text'
 import { CardScreen } from '../features/card/screens/CardScreen'
 import { ChatScreen } from '../features/chat/screens/ChatScreen'
 import { ConversationsScreen } from '../features/chat/screens/ConversationsScreen'
 import { HomeScreen } from '../features/home/screens/HomeScreen'
 import { SettingsScreen } from '../features/settings/screens/SettingsScreen'
+import { fonts } from '../theme/fonts'
 import { useTheme } from '../theme/ThemeContext'
 
 export type RootStackParamList = {
@@ -40,7 +42,7 @@ export function RootNavigator() {
     <NavigationContainer
       theme={{ ...base, colors: { ...base.colors, background: colors.background, card: colors.surface, text: colors.text, primary: colors.primary, border: colors.border } }}
     >
-      <Stack.Navigator initialRouteName="Home">
+      <Stack.Navigator initialRouteName="Home" screenOptions={{ headerTitleStyle: { fontFamily: fonts.semibold } }}>
         <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false, title: 'Home' }} />
         <Stack.Screen
           name="Chat"

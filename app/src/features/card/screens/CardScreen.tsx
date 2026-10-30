@@ -2,7 +2,8 @@
 // Results are shown exactly as Airwallex answers, including sandbox errors.
 import { useFocusEffect } from '@react-navigation/native'
 import { useCallback, useState } from 'react'
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
+import { Text } from '../../../components/Text'
 import { api, ApiError } from '../../../api/client'
 import type { CardView, ChargeKind } from '../../../api/types'
 import { useTheme } from '../../../theme/ThemeContext'

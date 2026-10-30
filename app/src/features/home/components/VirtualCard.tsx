@@ -1,6 +1,7 @@
 // The issued card drawn as a card, with what Airwallex says is left this period. Without a card, an outline
 // that says how one comes to exist: the agent proposes, the founder approves.
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
+import { Text } from '../../../components/Text'
 import type { CardView } from '../../../api/types'
 import { displayFont, useTheme } from '../../../theme/ThemeContext'
 import { describeCategory, formatMajor } from '../../../utils/format'
@@ -79,7 +80,7 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 13, lineHeight: 19, maxWidth: 280 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12 },
   caps: { fontSize: 11, fontWeight: '600', letterSpacing: 1.6, flexShrink: 1 },
-  brand: { fontSize: 15, fontWeight: '800', fontStyle: 'italic', letterSpacing: 1 },
+  brand: { fontSize: 15, fontWeight: '700', letterSpacing: 1.5 },
   chip: { width: 38, height: 28, borderRadius: 6, opacity: 0.85 },
   number: { fontFamily: displayFont, fontSize: 21, letterSpacing: 2, fontVariant: ['tabular-nums'] },
   tiny: { fontSize: 9, fontWeight: '600', letterSpacing: 1.4, marginBottom: 2 },

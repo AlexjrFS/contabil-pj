@@ -9,14 +9,15 @@ import {
   Platform,
   Pressable,
   StyleSheet,
-  Text,
   TextInput,
   View,
 } from 'react-native'
+import { Text } from '../../../components/Text'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ApiError, streamChat } from '../../../api/client'
 import type { ChatMessage, Proposal } from '../../../api/types'
 import type { RootStackParamList } from '../../../navigation/RootNavigator'
+import { fonts } from '../../../theme/fonts'
 import { useTheme } from '../../../theme/ThemeContext'
 import { ProposalCard } from '../components/ProposalCard'
 import { loadConversation, newItemId as newId, saveConversation, type ChatItem as Item } from '../services/history'
@@ -218,6 +219,6 @@ const styles = StyleSheet.create({
   suggestion: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, alignSelf: 'flex-start', maxWidth: '100%' },
   newChat: { borderWidth: 1 },
   composer: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth },
-  input: { flex: 1, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
+  input: { flex: 1, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, fontFamily: fonts.regular },
   send: { borderRadius: 10, paddingHorizontal: 16, justifyContent: 'center' },
 })

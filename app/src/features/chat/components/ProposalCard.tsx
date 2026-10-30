@@ -1,7 +1,8 @@
 // The confirmation card: exactly the terms the founder approves. Approve sends back this proposal's
 // fingerprint, so the server only runs what was shown here.
 import { useState } from 'react'
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native'
+import { Text } from '../../../components/Text'
 import { api, ApiError } from '../../../api/client'
 import type { Proposal } from '../../../api/types'
 import { useTheme } from '../../../theme/ThemeContext'

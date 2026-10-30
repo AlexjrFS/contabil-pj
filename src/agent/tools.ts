@@ -27,6 +27,8 @@ export interface AgentDeps {
   onProposal: (proposal: Proposal) => void
   // The card already issued for an offer, if any
   cardFor?: (offerId: string) => { cardId: string; plan: Plan } | undefined
+  // Cards this demo issued: the only ones the agent may propose to freeze
+  issuedCardIds?: () => string[]
 }
 
 const json = (value: unknown) => JSON.stringify(value, null, 2)
@@ -184,6 +186,18 @@ export function agentTools(deps: AgentDeps): BetaRunnableTool<any>[] {
         if (existing) {
           return json({ error: `card ${existing.cardId} already exists for ${offer_id}; use propose_card_update` })
         }
+        // One card proposal per offer at a time: a second one could be approved too and issue a second card
+        const now = (ctx.now ?? (() => new Date()))().getTime()
+        const waiting = (await store.list()).find(
+          (p) =>
+            p.status === 'pending' &&
+            p.action.kind === 'issue_card' &&
+            p.action.offerId === offer_id &&
+            Date.parse(p.expiresAt) > now,
+        )
+        if (waiting) {
+          return json({ error: `proposal ${waiting.id} for ${offer_id} is already waiting for the founder's approval` })
+        }
         return proposalResult(await proposeCard(store, ctx, offer_id), deps.onProposal)
       },
     }),
@@ -204,9 +218,13 @@ export function agentTools(deps: AgentDeps): BetaRunnableTool<any>[] {
 
     betaZodTool({
       name: 'propose_freeze',
-      description: "Propose freezing a card (for example after a suspicious invoice). Needs the founder's approval.",
+      description:
+        "Propose freezing a card this system issued. Only when the founder asks to freeze it; a freeze cannot be undone in the demo. Needs the founder's approval.",
       inputSchema: z.object({ card_id: cardId, reason: z.string().max(200) }),
       run: async ({ card_id, reason }) => {
+        if (deps.issuedCardIds && !deps.issuedCardIds().includes(card_id)) {
+          return json({ error: `card ${card_id} was not issued by this system` })
+        }
         const proposal = await proposeFreeze(store, ctx, card_id, reason)
         deps.onProposal(proposal)
         return json({ proposal_id: proposal.id, status: 'waiting for the founder to approve in the app' })

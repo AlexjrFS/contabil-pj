@@ -15,6 +15,9 @@ export interface AppOptions {
   chat?: Converse
   // When set, every route but /health needs `Authorization: Bearer <token>`
   token?: string
+  // When set, only this token may reset the demo; it also opens every other route. The app build carries
+  // `token`, so whoever extracts it from a bundle still cannot wipe the demo
+  adminToken?: string
 }
 
 const MAX_BODY = 64 * 1024
@@ -106,7 +109,9 @@ export function createHandler(getSession: () => Promise<Session>, options: AppOp
       method === m && parts.length === path.length && path.every((p, i) => p === '*' || p === parts[i])
 
     if (is('GET', 'health')) return json(200, { ok: true, model: process.env.ANTHROPIC_MODEL || DEFAULT_MODEL })
-    if (options.token && request.headers.get('authorization') !== `Bearer ${options.token}`) {
+    const authorization = request.headers.get('authorization')
+    const admin = options.adminToken !== undefined && authorization === `Bearer ${options.adminToken}`
+    if (options.token && !admin && authorization !== `Bearer ${options.token}`) {
       throw new HttpError(401, 'unauthorized', 'Missing or wrong demo token')
     }
 
@@ -158,6 +163,7 @@ export function createHandler(getSession: () => Promise<Session>, options: AppOp
     }
 
     if (is('POST', 'demo', 'reset')) {
+      if (options.adminToken && !admin) throw new HttpError(403, 'admin_only', 'Resetting the demo needs the admin token')
       const { new_cardholder } = await readJson(request)
       await session.reset({ newCardholder: new_cardholder === true })
       return json(200, session.state())

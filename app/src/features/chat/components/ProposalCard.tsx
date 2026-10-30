@@ -17,10 +17,13 @@ const TITLES = {
 const OUTCOMES: Record<string, string> = {
   executed: 'Done. The card now enforces these terms.',
   rejected: 'Rejected. Nothing was changed.',
-  stale: 'The terms changed after this proposal (new price or cash). Ask the agent for a new one.',
+  stale: 'This proposal no longer applies (new terms, or a card already issued). Ask the agent for a new one.',
   expired: 'This proposal expired. Ask the agent for a new one.',
   failed: 'Airwallex did not accept it.',
 }
+
+// Server errors that settle the proposal: show the outcome instead of an error and drop the buttons
+const MOVED_ON: Record<string, Proposal['status']> = { expired: 'expired', superseded: 'stale' }
 
 // onDecided lets the home screen refresh the card and cash once the founder has decided
 export function ProposalCard({ proposal: initial, onDecided }: { proposal: Proposal; onDecided?: (p: Proposal) => void }) {
@@ -39,7 +42,14 @@ export function ProposalCard({ proposal: initial, onDecided }: { proposal: Propo
       onDecided?.(decided)
     } catch (e) {
       // A 409 means the proposal moved on (stale, expired, already decided)
-      setError(e instanceof ApiError ? e.message : 'Could not reach the server')
+      const moved = e instanceof ApiError ? MOVED_ON[e.code] : undefined
+      if (moved) {
+        const decided = { ...proposal, status: moved }
+        setProposal(decided)
+        onDecided?.(decided)
+      } else {
+        setError(e instanceof ApiError ? e.message : 'Could not reach the server')
+      }
     } finally {
       setBusy(null)
     }
@@ -76,7 +86,7 @@ export function ProposalCard({ proposal: initial, onDecided }: { proposal: Propo
         </View>
       ))}
       <Text style={[styles.note, { color: colors.muted }]}>
-        The card declines any other amount, currency or merchant category.
+        The card declines a charge above this limit, any other currency and any other merchant category.
       </Text>
 
       {pending ? (

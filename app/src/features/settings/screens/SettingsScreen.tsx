@@ -2,7 +2,7 @@
 // arriving, and a reset between takes.
 import { useFocusEffect } from '@react-navigation/native'
 import { useCallback, useState } from 'react'
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native'
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { Text } from '../../../components/Text'
 import { api, ApiError } from '../../../api/client'
 import type { DemoState } from '../../../api/types'
@@ -12,6 +12,19 @@ import { fonts } from '../../../theme/fonts'
 import { useTheme } from '../../../theme/ThemeContext'
 
 const INVOICE_ID = 'framewise-2026-12'
+
+// Reset wipes the shared demo for everyone: ask first (Alert does nothing on web, so confirm there)
+function confirmReset(onConfirm: () => void) {
+  const message = 'Proposals, the card and conversations are cleared for everyone using this demo.'
+  if (Platform.OS === 'web') {
+    if (window.confirm(`Reset the demo? ${message}`)) onConfirm()
+    return
+  }
+  Alert.alert('Reset the demo?', message, [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Reset', style: 'destructive', onPress: onConfirm },
+  ])
+}
 
 export function SettingsScreen() {
   const { colors } = useTheme()
@@ -111,7 +124,20 @@ export function SettingsScreen() {
           label="Reset demo"
           tone="danger"
           busy={busy === 'reset'}
-          onPress={() => run('reset', async () => (await api.reset(), await clearConversations(), 'Demo reset: no proposals, no card, original prices, no conversations.'))}
+          onPress={() =>
+            confirmReset(() =>
+              run('reset', async () => {
+                try {
+                  await api.reset()
+                } catch (e) {
+                  if (e instanceof ApiError && e.status === 403) return 'Only the presenter can reset the demo: enter the admin token above.'
+                  throw e
+                }
+                await clearConversations()
+                return 'Demo reset: no proposals, no card, original prices, no conversations.'
+              }),
+            )
+          }
         />
         {note ? <Text style={{ color: colors.text }}>{note}</Text> : null}
       </View>

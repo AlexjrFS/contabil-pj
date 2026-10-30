@@ -9,6 +9,7 @@ import { createExecutor } from '../approvals/executor.js'
 import { ingestInvoice, type IngestResult } from '../approvals/invoices.js'
 import {
   approve,
+  ProposalError,
   reject,
   type PolicyContext,
   type Proposal,
@@ -123,7 +124,15 @@ export async function openSession(deps: SessionDeps) {
     state: () => structuredClone(state),
 
     tools: (onProposal: (p: Proposal) => void) =>
-      agentTools({ store, ctx, invoices, cards: api, onProposal, cardFor: (offerId) => state.cards[offerId] }),
+      agentTools({
+        store,
+        ctx,
+        invoices,
+        cards: api,
+        onProposal,
+        cardFor: (offerId) => state.cards[offerId],
+        issuedCardIds: () => Object.values(state.cards).map((c) => c.cardId),
+      }),
 
     context: () =>
       conversationContext(
@@ -137,7 +146,19 @@ export async function openSession(deps: SessionDeps) {
 
     // The founder's tap on "Approve": approval and execution in one step
     async approve(id: string, fingerprint: string): Promise<Proposal> {
-      await approve(store, ctx, id, fingerprint)
+      const current = await store.get(id)
+      // A second card for an offer that already has one would double the approved spend
+      if (current?.status === 'pending' && current.action.kind === 'issue_card' && state.cards[current.action.offerId]) {
+        current.status = 'stale'
+        await store.save(current)
+        throw new ProposalError('superseded', 'A card was already issued for this offer. Ask the agent to update it instead.')
+      }
+      // An approval cut off mid-run (function timeout, lost response) runs again with the same request_id
+      const resume =
+        current !== undefined &&
+        ['approved', 'executing', 'failed'].includes(current.status) &&
+        current.fingerprint === fingerprint
+      if (!resume) await approve(store, ctx, id, fingerprint)
       const proposal = await executor.execute(id)
       await record(proposal)
       return proposal

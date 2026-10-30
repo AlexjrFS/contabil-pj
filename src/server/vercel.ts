@@ -26,5 +26,5 @@ const api = airwallexApi(AirwallexClient.fromEnv())
 
 export const handler = createHandler(
   () => openSession({ api, store: new RedisProposalStore(redis), stateStore: new RedisStateStore(redis) }),
-  { token: required('DEMO_TOKEN') },
+  { token: required('DEMO_TOKEN'), adminToken: process.env.ADMIN_TOKEN || undefined },
 )

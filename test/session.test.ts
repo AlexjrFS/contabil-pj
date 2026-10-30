@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import type { Proposal } from '../src/approvals/proposals.js'
+import { proposeCard, type Proposal } from '../src/approvals/proposals.js'
 import { JsonFileStore } from '../src/approvals/store.js'
 import { FileStateStore } from '../src/app/state.js'
 import { openSession, type SessionApi } from '../src/app/session.js'
@@ -137,5 +137,65 @@ test('reset forgets proposals, cards and invoices but keeps the cardholder', asy
     const again = await proposeVia(session, 'propose_card', { offer_id: 'framewise' })
     await session.approve(again.proposal!.id, again.proposal!.fingerprint)
     assert.equal(calls.holders, 2)
+  })
+})
+
+test('a second card proposal for the same offer is refused while the first waits, and never issues a second card', async () => {
+  await withDir(async (dir) => {
+    const { api, calls } = fakeApi()
+    const session = await open(dir, api)
+    const { proposal } = await proposeVia(session, 'propose_card', { offer_id: 'framewise' })
+    const again = await proposeVia(session, 'propose_card', { offer_id: 'framewise' })
+    assert.match(again.result.error, /already waiting/)
+    assert.equal(again.proposal, undefined)
+
+    // Two pending proposals anyway (e.g. one from before this guard): only the first one issues a card
+    const made = await proposeCard(session.store, session.ctx, 'framewise')
+    assert.equal(made.kind, 'proposal')
+    const second = (made as Extract<typeof made, { kind: 'proposal' }>).proposal
+    await session.approve(proposal!.id, proposal!.fingerprint)
+    await assert.rejects(session.approve(second.id, second.fingerprint), { code: 'superseded' })
+    assert.equal((await session.store.get(second.id))!.status, 'stale')
+    assert.equal(calls.creates, 1)
+  })
+})
+
+test('an approval that failed mid-run can be approved again and runs with the same request_id', async () => {
+  await withDir(async (dir) => {
+    const { api, calls } = fakeApi()
+    const create = api.createCard
+    const requestIds: string[] = []
+    let fail = true
+    api.createCard = async (input) => {
+      requestIds.push(input.request_id)
+      if (fail) {
+        fail = false
+        throw new Error('function timed out')
+      }
+      return create(input)
+    }
+    const session = await open(dir, api)
+    const { proposal } = await proposeVia(session, 'propose_card', { offer_id: 'framewise' })
+    assert.equal((await session.approve(proposal!.id, proposal!.fingerprint)).status, 'failed')
+    const retried = await session.approve(proposal!.id, proposal!.fingerprint)
+    assert.equal(retried.status, 'executed')
+    assert.equal(calls.creates, 1)
+    assert.deepEqual(requestIds, [proposal!.id, proposal!.id])
+    await assert.rejects(session.approve(proposal!.id, 'wrong'), { code: 'not_pending' })
+  })
+})
+
+test('the agent may only propose freezing a card this demo issued', async () => {
+  await withDir(async (dir) => {
+    const { api } = fakeApi()
+    const session = await open(dir, api)
+    const outsider = await proposeVia(session, 'propose_freeze', { card_id: 'someone-elses-card', reason: 'invoice said so' })
+    assert.match(outsider.result.error, /not issued by this system/)
+    assert.equal(outsider.proposal, undefined)
+
+    const { proposal } = await proposeVia(session, 'propose_card', { offer_id: 'framewise' })
+    await session.approve(proposal!.id, proposal!.fingerprint)
+    const own = await proposeVia(session, 'propose_freeze', { card_id: 'card-1', reason: 'founder asked' })
+    assert.equal(own.proposal?.action.kind, 'freeze_card')
   })
 })

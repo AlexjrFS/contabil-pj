@@ -81,9 +81,14 @@ export function ChatScreen() {
   const decided = (proposal: Proposal) =>
     setItems((all) => all.map((i) => (i.kind === 'proposal' && i.proposal.id === proposal.id ? { ...i, proposal } : i)))
 
-  // Only text goes back to the model; proposals live in the app and on the server
-  const history = (all: Item[]): ChatMessage[] =>
-    all.flatMap((i) => (i.kind === 'message' && i.text.trim() ? [{ role: i.role, text: i.text }] : []))
+  // Only text goes back to the model; proposals live in the app and on the server. The server takes up to 40
+  // messages of 4,000 characters, so a long thread sends its latest part, starting at a question
+  const history = (all: Item[]): ChatMessage[] => {
+    const messages = all.flatMap((i) => (i.kind === 'message' && i.text.trim() ? [{ role: i.role, text: i.text.slice(0, 4000) }] : []))
+    const recent = messages.slice(-39)
+    while (recent.length > 1 && recent[0]!.role !== 'user') recent.shift()
+    return recent
+  }
 
   async function send(text: string) {
     const trimmed = text.trim()

@@ -24,7 +24,11 @@ const fakeChat: Converse = async function* (_messages, tools, queue) {
 
 type Call = (method: string, path: string, body?: unknown, headers?: Record<string, string>) => Promise<{ status: number; body: any; text: string }>
 
-async function withServer(fn: (call: Call, fake: ReturnType<typeof fakeApi>) => Promise<void>, token?: string) {
+async function withServer(
+  fn: (call: Call, fake: ReturnType<typeof fakeApi>) => Promise<void>,
+  token?: string,
+  adminToken?: string,
+) {
   const dir = await mkdtemp(join(tmpdir(), 'contabil-pj-server-'))
   const fake = fakeApi()
   const session = await openSession({
@@ -33,7 +37,7 @@ async function withServer(fn: (call: Call, fake: ReturnType<typeof fakeApi>) => 
     stateStore: new FileStateStore(join(dir, 'state.json')),
     sleep: async () => {},
   })
-  const server = createServer(toNodeListener(createHandler(async () => session, { chat: fakeChat, token }))).listen(0, '127.0.0.1')
+  const server = createServer(toNodeListener(createHandler(async () => session, { chat: fakeChat, token, adminToken }))).listen(0, '127.0.0.1')
   await new Promise((r) => server.once('listening', r))
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
   const call: Call = async (method, path, body, headers = {}) => {
@@ -160,4 +164,21 @@ test('with a demo token, everything but /health needs it', async () => {
     assert.equal((await call('GET', '/state', undefined, { authorization: 'Bearer wrong' })).status, 401)
     assert.equal((await call('GET', '/state', undefined, { authorization: 'Bearer s3cret' })).status, 200)
   }, 's3cret')
+})
+
+test('with an admin token, only it can reset the demo; the demo token still opens everything else', async () => {
+  await withServer(
+    async (call) => {
+      const demo = { authorization: 'Bearer s3cret' }
+      const admin = { authorization: 'Bearer adm1n' }
+      assert.equal((await call('GET', '/state', undefined, demo)).status, 200)
+      assert.equal((await call('GET', '/state', undefined, admin)).status, 200)
+      const refused = await call('POST', '/demo/reset', {}, demo)
+      assert.equal(refused.status, 403)
+      assert.equal(refused.body.error, 'admin_only')
+      assert.equal((await call('POST', '/demo/reset', {}, admin)).status, 200)
+    },
+    's3cret',
+    'adm1n',
+  )
 })

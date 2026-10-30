@@ -35,7 +35,7 @@ export function HomeScreen() {
       setError(null)
     } else {
       const e = cashResult.reason
-      setError(e instanceof ApiError && e.status === 401 ? 'The demo token is wrong. Check Settings.' : 'Could not reach the server. Check Settings.')
+      setError(e instanceof ApiError && e.status === 401 ? 'This demo needs its token: open Settings and enter it.' : 'Could not reach the server. Check Settings.')
     }
     // 404 no_card is the normal state before the first approval
     setCard(cardResult.status === 'fulfilled' ? cardResult.value : null)

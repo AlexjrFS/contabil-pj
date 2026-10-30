@@ -67,7 +67,14 @@ export interface PolicyContext {
 
 export class ProposalError extends Error {
   constructor(
-    readonly code: 'unknown_offer' | 'not_found' | 'not_pending' | 'expired' | 'fingerprint_mismatch' | 'not_approved',
+    readonly code:
+      | 'unknown_offer'
+      | 'not_found'
+      | 'not_pending'
+      | 'expired'
+      | 'fingerprint_mismatch'
+      | 'not_approved'
+      | 'superseded',
     message: string,
   ) {
     super(message)

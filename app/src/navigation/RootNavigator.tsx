@@ -3,13 +3,16 @@ import { createNativeStackNavigator, type NativeStackScreenProps } from '@react-
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { CardScreen } from '../features/card/screens/CardScreen'
 import { ChatScreen } from '../features/chat/screens/ChatScreen'
+import { ConversationsScreen } from '../features/chat/screens/ConversationsScreen'
 import { HomeScreen } from '../features/home/screens/HomeScreen'
 import { SettingsScreen } from '../features/settings/screens/SettingsScreen'
 import { useTheme } from '../theme/ThemeContext'
 
 export type RootStackParamList = {
   Home: undefined
-  Chat: undefined
+  // id: open that conversation; startNew: open an empty one (a timestamp, so each tap counts); neither: the latest
+  Chat: { id?: string; startNew?: number } | undefined
+  Conversations: undefined
   Card: undefined
   Settings: undefined
 }
@@ -20,11 +23,11 @@ function HeaderLinks({ navigation }: Pick<NativeStackScreenProps<RootStackParamL
   const { colors } = useTheme()
   return (
     <View style={styles.links}>
+      <Pressable accessibilityRole="button" onPress={() => navigation.navigate('Conversations')} hitSlop={8}>
+        <Text style={[styles.link, { color: colors.primary }]}>History</Text>
+      </Pressable>
       <Pressable accessibilityRole="button" onPress={() => navigation.navigate('Card')} hitSlop={8}>
         <Text style={[styles.link, { color: colors.primary }]}>Card</Text>
-      </Pressable>
-      <Pressable accessibilityRole="button" onPress={() => navigation.navigate('Settings')} hitSlop={8}>
-        <Text style={[styles.link, { color: colors.primary }]}>Settings</Text>
       </Pressable>
     </View>
   )
@@ -44,6 +47,7 @@ export function RootNavigator() {
           component={ChatScreen}
           options={({ navigation }) => ({ title: 'Finance agent', headerRight: () => <HeaderLinks navigation={navigation} /> })}
         />
+        <Stack.Screen name="Conversations" component={ConversationsScreen} options={{ title: 'Conversations' }} />
         <Stack.Screen name="Card" component={CardScreen} options={{ title: 'Virtual card' }} />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
       </Stack.Navigator>

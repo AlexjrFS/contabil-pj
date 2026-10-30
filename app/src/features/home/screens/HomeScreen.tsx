@@ -67,9 +67,14 @@ export function HomeScreen() {
               <Text style={[styles.product, { color: colors.muted }]}>Contabil PJ</Text>
             </View>
           </View>
-          <Pressable accessibilityRole="button" onPress={() => navigation.navigate('Settings')} hitSlop={10}>
-            <Text style={[styles.topLink, { color: colors.primary }]}>Settings</Text>
-          </Pressable>
+          <View style={styles.topLinks}>
+            <Pressable accessibilityRole="button" onPress={() => navigation.navigate('Conversations')} hitSlop={10}>
+              <Text style={[styles.topLink, { color: colors.primary }]}>History</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={() => navigation.navigate('Settings')} hitSlop={10}>
+              <Text style={[styles.topLink, { color: colors.primary }]}>Settings</Text>
+            </Pressable>
+          </View>
         </View>
 
         {!cash && loading ? <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} /> : null}
@@ -82,7 +87,7 @@ export function HomeScreen() {
               <Text style={[styles.balance, { color: colors.text }]} adjustsFontSizeToFit numberOfLines={1}>
                 {formatCents(cash.balance, cash.currency)}
               </Text>
-              <Text style={[styles.asOf, { color: colors.muted }]}>As of {formatDate(cash.asOf)}</Text>
+              <Text style={[styles.asOf, { color: colors.muted }]}>As of {formatDate(cash.asOf)} · simulated cash for a demo company</Text>
             </View>
 
             <View style={[styles.split, { borderColor: colors.border }]}>
@@ -112,7 +117,7 @@ export function HomeScreen() {
 
         {cash ? (
           <>
-            <Section title="Virtual card" caption="Issued on Airwallex. Its controls decline anything you did not approve." />
+            <Section title="Virtual card" caption="Live on the Airwallex sandbox. Its controls decline anything you did not approve." />
             <VirtualCard card={card} onPress={() => navigation.navigate('Card')} />
 
             <Section title="Coming up" />
@@ -179,6 +184,7 @@ const styles = StyleSheet.create({
   logo: { width: 40, height: 34 },
   company: { fontSize: 16, fontWeight: '700' },
   product: { fontSize: 12, letterSpacing: 0.4 },
+  topLinks: { flexDirection: 'row', gap: 18 },
   topLink: { fontSize: 15, fontWeight: '600' },
   error: { textAlign: 'center', marginTop: 32 },
   hero: { gap: 4, marginTop: 8 },

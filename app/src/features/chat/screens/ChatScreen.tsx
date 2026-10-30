@@ -1,5 +1,6 @@
 // Chat with the finance agent. Text streams in; proposals appear as confirmation cards inside the thread.
-// The thread is saved on this device and restored when the chat opens again.
+// Conversations are saved on this device: the chat opens the one picked in History, or else the most recent.
+import { useRoute, type RouteProp } from '@react-navigation/native'
 import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
@@ -15,9 +16,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ApiError, streamChat } from '../../../api/client'
 import type { ChatMessage, Proposal } from '../../../api/types'
+import type { RootStackParamList } from '../../../navigation/RootNavigator'
 import { useTheme } from '../../../theme/ThemeContext'
 import { ProposalCard } from '../components/ProposalCard'
-import { clearChat, loadChat, newItemId as newId, saveChat, type ChatItem as Item } from '../services/history'
+import { loadConversation, newItemId as newId, saveConversation, type ChatItem as Item } from '../services/history'
 
 const TOOL_LABELS: Record<string, string> = {
   see_cash: 'Reading the cash projection',
@@ -44,24 +46,35 @@ export function ChatScreen() {
   const [busy, setBusy] = useState(false)
   const [activity, setActivity] = useState<string | null>(null)
   const [restored, setRestored] = useState(false)
+  const [conversationId, setConversationId] = useState<string | null>(null)
   const list = useRef<FlatList<Item>>(null)
+  // What was loaded, so opening a conversation does not count as changing it (and move it to the top)
+  const loaded = useRef<Item[]>([])
+  const { params } = useRoute<RouteProp<RootStackParamList, 'Chat'>>()
+
+  function show(id: string, shown: Item[]) {
+    loaded.current = shown
+    setConversationId(id)
+    setItems(shown)
+    setRestored(true)
+  }
 
   useEffect(() => {
-    loadChat().then((saved) => {
-      setItems(saved)
-      setRestored(true)
-    })
-  }, [])
+    setRestored(false)
+    if (params?.startNew) {
+      show(newId(), [])
+      return
+    }
+    loadConversation(params?.id).then((found) => (found ? show(found.id, found.items) : show(newId(), [])))
+  }, [params?.id, params?.startNew])
 
   // Saved once each answer is complete, not on every streamed chunk
   useEffect(() => {
-    if (restored && !busy) saveChat(items)
-  }, [items, busy, restored])
+    if (restored && !busy && conversationId && items !== loaded.current) saveConversation(conversationId, items)
+  }, [items, busy, restored, conversationId])
 
-  function newConversation() {
-    setItems([])
-    clearChat()
-  }
+  // The current one stays in History
+  const newConversation = () => show(newId(), [])
 
   // Keeps the saved thread in step with the founder's decision
   const decided = (proposal: Proposal) =>

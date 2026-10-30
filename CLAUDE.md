@@ -45,6 +45,6 @@ This repo is separate from the production Contabil app (`../contabil`). Never ad
 `npm run typecheck` and `npm test`. After changing anything under `src/airwallex/`, also `npm run smoke` (needs `.env`).
 
 ## Home screen
-- Home is the app's initial route (cash, 12-week projection, issued card, pending approvals); the agent chat is pushed from it. The chat thread is saved on the device only (AsyncStorage, `features/chat/services/history.ts`), restored with proposal statuses re-read from the server, and cleared by *New conversation* or *Reset demo*; the server never stores messages.
+- Home is the app's initial route (cash, 12-week projection, issued card, pending approvals); the agent chat is pushed from it. Conversations are saved on the device only (AsyncStorage, `features/chat/services/history.ts`) and listed in History (open, new, delete); the chat opens the picked one or the latest, re-reading proposal statuses from the server. *Reset demo* clears them all; the server never stores messages.
 - `GET /cash` returns the policy's cash view (cents) with the issued cards' charges counted; the balance is Halcyon's synthetic cash, not the Airwallex sandbox wallet.
 - Palette tokens come from the logo (ivory, espresso, gold); headline numbers use the system serif (`displayFont`). No native modules beyond the installed build, so UI ships by OTA.

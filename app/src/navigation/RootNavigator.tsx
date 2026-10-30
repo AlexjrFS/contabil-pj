@@ -45,7 +45,12 @@ export function RootNavigator() {
         <Stack.Screen
           name="Chat"
           component={ChatScreen}
-          options={({ navigation }) => ({ title: 'Finance agent', headerRight: () => <HeaderLinks navigation={navigation} /> })}
+          options={({ navigation }) => ({
+            title: 'Finance agent',
+            headerRight: () => <HeaderLinks navigation={navigation} />,
+            // iOS 26 wraps custom header content in one glass capsule; plain text links read better
+            headerRightBackgroundVisible: false,
+          })}
         />
         <Stack.Screen name="Conversations" component={ConversationsScreen} options={{ title: 'Conversations' }} />
         <Stack.Screen name="Card" component={CardScreen} options={{ title: 'Virtual card' }} />

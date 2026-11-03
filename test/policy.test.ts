@@ -54,6 +54,8 @@ test('a late retainer breaks the reserve even on monthly, so the policy escalate
   for (const monthlyPrice of [cents(600), cents(690)]) {
     const result = comparePlans(position, { ...SAAS_OFFER, monthlyPrice, annualPrice: cents((monthlyPrice / 100) * 12 * 0.82) })
     assert.deepEqual(result.recommendation, { kind: 'escalate', reason: 'both_plans_break_reserve' })
+    // The narration says week seven
+    assert.equal(result.monthly.firstBreachWeek, 7)
   }
   // The same flows without the news keep the demo's monthly decision
   assert.equal(comparePlans(cashPosition(), SAAS_OFFER).recommendation.kind, 'buy')

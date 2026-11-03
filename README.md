@@ -130,7 +130,7 @@ Deploying your own copy: link a Vercel project, add Upstash Redis from the Verce
 | `src/agent/tools.ts` | The model's tools: read, or propose by id |
 | `src/agent/chat.ts`, `src/agent/prompt.ts` | Tool-runner loop (streaming) and system prompt |
 | `src/app/session.ts`, `src/app/state.ts` | Demo session: shared policy context, executor, cardholder, issued cards, received invoices and cash news |
-| `src/server/app.ts` | HTTP API: chat, approve/reject, cash projection, card, invoice and cash news arrival, named test charges, reset |
+| `src/server/app.ts` | HTTP API (every path listed in `vercel.json` rewrites): chat, approve/reject, cash projection, card, invoice and cash news arrival, named test charges, reset |
 | `src/server/vercel.ts`, `api/index.ts` | Vercel entry: Redis-backed session per request |
 | `src/airwallex/` | REST client (token cache, 429 backoff, concurrency cap) and typed endpoint wrappers |
 | `src/demo/` | Synthetic company, offer and the injected invoice |

@@ -51,8 +51,8 @@ test('the Redis proposal store keeps each proposal in its own field', async () =
 
 test('the Redis state store starts empty and round-trips', async () => {
   const store = new RedisStateStore(fakeRedis())
-  assert.deepEqual(await store.load(), { cards: {}, invoices: [] })
-  const state = { cardholderId: 'h1', cards: { framewise: { cardId: 'c1', plan: 'monthly' as const, proposalId: 'p1' } }, invoices: ['inv'] }
+  assert.deepEqual(await store.load(), { cards: {}, invoices: [], events: [] })
+  const state = { cardholderId: 'h1', cards: { framewise: { cardId: 'c1', plan: 'monthly' as const, proposalId: 'p1' } }, invoices: ['inv'], events: ['ev'] }
   await store.save(state)
   assert.deepEqual(await store.load(), state)
 })

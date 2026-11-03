@@ -8,6 +8,7 @@ import { JsonFileStore } from '../src/approvals/store.js'
 import { FileStateStore } from '../src/app/state.js'
 import { openSession, type SessionApi } from '../src/app/session.js'
 import { fakeApi } from './fakes.js'
+import { LATE_RETAINER } from '../src/demo/events.js'
 import { PRICE_INCREASE } from '../src/demo/invoices.js'
 import { cents } from '../src/policy/money.js'
 
@@ -125,7 +126,7 @@ test('reset forgets proposals, cards and invoices but keeps the cardholder', asy
     await session.approve(proposal!.id, proposal!.fingerprint)
     await session.receiveInvoice(PRICE_INCREASE.id)
     await session.reset()
-    assert.deepEqual(session.state(), { cardholderId: 'holder-1', cards: {}, invoices: [] })
+    assert.deepEqual(session.state(), { cardholderId: 'holder-1', cards: {}, invoices: [], events: [] })
     assert.equal(session.ctx.offers.framewise!.monthlyPrice, cents(600))
     assert.deepEqual(await session.store.list(), [])
     await open(dir, api)
@@ -133,7 +134,7 @@ test('reset forgets proposals, cards and invoices but keeps the cardholder', asy
 
     // Asked for a new cardholder: forgotten now, created again with the next card
     await session.reset({ newCardholder: true })
-    assert.deepEqual(session.state(), { cards: {}, invoices: [] })
+    assert.deepEqual(session.state(), { cards: {}, invoices: [], events: [] })
     const again = await proposeVia(session, 'propose_card', { offer_id: 'framewise' })
     await session.approve(again.proposal!.id, again.proposal!.fingerprint)
     assert.equal(calls.holders, 2)
@@ -197,5 +198,43 @@ test('the agent may only propose freezing a card this demo issued', async () => 
     await session.approve(proposal!.id, proposal!.fingerprint)
     const own = await proposeVia(session, 'propose_freeze', { card_id: 'card-1', reason: 'founder asked' })
     assert.equal(own.proposal?.action.kind, 'freeze_card')
+  })
+})
+
+test('a late client payment makes the policy escalate: no update is proposed, a waiting proposal goes stale, Home shows the dip', async () => {
+  await withDir(async (dir) => {
+    const { api, calls } = fakeApi()
+    const session = await open(dir, api)
+    const { proposal: card } = await proposeVia(session, 'propose_card', { offer_id: 'framewise' })
+    await session.approve(card!.id, card!.fingerprint)
+    await session.receiveInvoice(PRICE_INCREASE.id)
+    const { proposal: waiting } = await proposeVia(session, 'propose_card_update', {
+      offer_id: 'framewise',
+      card_id: session.state().cards.framewise!.cardId,
+    })
+    assert.ok(waiting)
+    assert.ok(session.cash().weeks.every((w) => !w.breach))
+
+    assert.deepEqual(await session.receiveCashEvent(LATE_RETAINER.id), { kind: 'received' })
+    assert.deepEqual(await session.receiveCashEvent(LATE_RETAINER.id), { kind: 'unchanged' })
+    assert.deepEqual(await session.receiveCashEvent('nope'), { kind: 'unknown_event' })
+    assert.match(session.context(), /Cash news: André's November retainer is late/)
+    assert.ok(session.cash().weeks.some((w) => w.breach))
+
+    // The update built on the old cash no longer matches the policy
+    assert.equal((await session.approve(waiting!.id, waiting!.fingerprint)).status, 'stale')
+    assert.equal(calls.updates, 0)
+    const { result, proposal } = await proposeVia(session, 'propose_card_update', {
+      offer_id: 'framewise',
+      card_id: session.state().cards.framewise!.cardId,
+    })
+    assert.equal(proposal, undefined)
+    assert.equal(result.escalate, 'both_plans_break_reserve')
+
+    // The news survives a restart and goes away with a reset
+    assert.deepEqual((await open(dir, api)).state().events, [LATE_RETAINER.id])
+    await session.reset()
+    assert.deepEqual(session.state().events, [])
+    assert.ok(session.cash().weeks.every((w) => !w.breach))
   })
 })

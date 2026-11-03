@@ -1,5 +1,5 @@
 // One demo session: the shared policy context, proposals, executor and the scenario state (cardholder, cards
-// issued, invoices received). The server and the CLI both go through here, so the agent's tools and the
+// issued, invoices and cash events received). The server and the CLI both go through here, so the agent's tools and the
 // executor always see the same offers. State is persisted (file locally, Redis on Vercel), so it survives a
 // restart mid-rehearsal and works when every request opens a fresh session.
 import type { AirwallexApi, CardTransactionResult } from '../airwallex/api.js'
@@ -16,6 +16,7 @@ import {
   type ProposalStore,
 } from '../approvals/proposals.js'
 import { AS_OF, cashPosition, COMPANY, OFFERS } from '../demo/company.js'
+import { applyCashEvents, CASH_EVENTS, type CashEvent } from '../demo/events.js'
 import { INVOICES, type Invoice } from '../demo/invoices.js'
 import { planCharges, projectWeeks } from '../policy/cash.js'
 import { toMajor, type Cents } from '../policy/money.js'
@@ -42,6 +43,7 @@ export interface SessionDeps {
   store: ProposalStore
   stateStore?: StateStore
   invoices?: Record<string, Invoice>
+  events?: Record<string, CashEvent>
   now?: () => Date
   newId?: () => string
   sleep?: (ms: number) => Promise<void>
@@ -78,11 +80,15 @@ export async function openSession(deps: SessionDeps) {
   const { api, store } = deps
   const stateStore = deps.stateStore ?? new FileStateStore()
   const invoices = deps.invoices ?? INVOICES
+  const events = deps.events ?? CASH_EVENTS
   const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)))
   const state = await stateStore.load()
   const save = () => stateStore.save(state)
 
-  const ctx: PolicyContext = { position: cashPosition, offers: { ...OFFERS }, now: deps.now, newId: deps.newId }
+  // The cash the policy sees: the company's flows with the cash events received so far
+  const receivedEvents = () => state.events.flatMap((id) => (events[id] ? [events[id]] : []))
+  const position = () => applyCashEvents(cashPosition(), receivedEvents())
+  const ctx: PolicyContext = { position, offers: { ...OFFERS }, now: deps.now, newId: deps.newId }
   // Replay the invoices already received so a restart keeps the current prices
   for (const id of state.invoices) {
     const invoice = invoices[id]
@@ -142,6 +148,7 @@ export async function openSession(deps: SessionDeps) {
           const invoice = invoices[id]
           return invoice ? [{ invoiceId: id, vendor: invoice.vendor, effectiveDate: invoice.effectiveDate }] : []
         }),
+        receivedEvents().map((e) => e.description),
       ),
 
     // The founder's tap on "Approve": approval and execution in one step
@@ -178,6 +185,16 @@ export async function openSession(deps: SessionDeps) {
         await save()
       }
       return result
+    },
+
+    // Cash news (a client pays late): the flows move in code and every later decision re-plans with them.
+    // Pending proposals built on the old cash go stale when approved
+    async receiveCashEvent(eventId: string): Promise<{ kind: 'received' | 'unchanged' | 'unknown_event' }> {
+      if (!events[eventId]) return { kind: 'unknown_event' }
+      if (state.events.includes(eventId)) return { kind: 'unchanged' }
+      state.events.push(eventId)
+      await save()
+      return { kind: 'received' }
     },
 
     // The founder's cash as the policy sees it: balance, reserve, and the next weeks including what the issued
@@ -232,7 +249,7 @@ export async function openSession(deps: SessionDeps) {
       })
     },
 
-    // Between takes of the video: forget proposals, cards and invoices. The cardholder is kept unless asked
+    // Between takes of the video: forget proposals, cards, invoices and cash events. The cardholder is kept unless asked
     // otherwise (e.g. after the founder's name changed); a new one is then created with the next card
     async reset(options: { newCardholder?: boolean } = {}) {
       await store.clear()

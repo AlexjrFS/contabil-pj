@@ -148,6 +148,7 @@ export function createHandler(getSession: () => Promise<Session>, options: AppOp
       return json(200, card)
     }
     if (is('POST', 'invoices', '*', 'receive')) return json(200, await session.receiveInvoice(parts[1]!))
+    if (is('POST', 'events', '*', 'receive')) return json(200, await session.receiveCashEvent(parts[1]!))
 
     if (is('POST', 'charges')) {
       const { offer_id, kind } = await readJson(request)

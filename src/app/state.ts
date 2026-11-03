@@ -1,4 +1,4 @@
-// Scenario state (cardholder, cards issued, invoices received). A JSON file locally, Redis on Vercel.
+// Scenario state (cardholder, cards issued, invoices and cash events received). A JSON file locally, Redis on Vercel.
 import { readFile } from 'node:fs/promises'
 import { fromRedis, writeJsonAtomic, type RedisLike } from '../approvals/store.js'
 import type { Plan } from '../policy/cash.js'
@@ -15,12 +15,15 @@ export interface DemoState {
   cards: Record<string, IssuedCard>
   // Invoice ids in the order they arrived
   invoices: string[]
+  // Cash event ids in the order they arrived
+  events: string[]
 }
 
 export const emptyState = (cardholderId?: string): DemoState => ({
   ...(cardholderId ? { cardholderId } : {}),
   cards: {},
   invoices: [],
+  events: [],
 })
 
 export interface StateStore {

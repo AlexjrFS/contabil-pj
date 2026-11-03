@@ -40,6 +40,7 @@ export const api = {
   card: (offerId: string) => request<CardView>('GET', `/cards/${offerId}`),
   charge: (offerId: string, kind: ChargeKind) => request<ChargeResult>('POST', '/charges', { offer_id: offerId, kind }),
   receiveInvoice: (invoiceId: string) => request<{ kind: string }>('POST', `/invoices/${invoiceId}/receive`),
+  receiveCashEvent: (eventId: string) => request<{ kind: string }>('POST', `/events/${eventId}/receive`),
   reset: () => request<DemoState>('POST', '/demo/reset'),
 }
 

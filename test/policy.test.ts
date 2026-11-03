@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { AS_OF, cashPosition, SAAS_OFFER } from '../src/demo/company.js'
+import { applyCashEvents, LATE_RETAINER } from '../src/demo/events.js'
 import { cardRequest, cardUpdate, controlsFor } from '../src/policy/card.js'
 import { comparePlans, planCharges, projectWeeks } from '../src/policy/cash.js'
 import { addMonths, cents, toMajor } from '../src/policy/money.js'
@@ -44,6 +45,18 @@ test('escalates to a person when neither plan keeps the reserve', () => {
     kind: 'escalate',
     reason: 'both_plans_break_reserve',
   })
+})
+
+test('a late retainer breaks the reserve even on monthly, so the policy escalates (at $600 and at $690)', () => {
+  const position = applyCashEvents(cashPosition(), [LATE_RETAINER])
+  assert.ok(position.flows.some((f) => f.date === '2027-02-05' && f.label === 'Client retainer: André (late)'))
+  assert.ok(!position.flows.some((f) => f.date === '2026-11-06'))
+  for (const monthlyPrice of [cents(600), cents(690)]) {
+    const result = comparePlans(position, { ...SAAS_OFFER, monthlyPrice, annualPrice: cents((monthlyPrice / 100) * 12 * 0.82) })
+    assert.deepEqual(result.recommendation, { kind: 'escalate', reason: 'both_plans_break_reserve' })
+  }
+  // The same flows without the news keep the demo's monthly decision
+  assert.equal(comparePlans(cashPosition(), SAAS_OFFER).recommendation.kind, 'buy')
 })
 
 test('projection catches a dip inside a week, not only the closing balance', () => {

@@ -37,6 +37,7 @@ const SUGGESTIONS = [
   'Should we buy Framewise Team annual or monthly?',
   'Yes, propose the card.',
   'Process the December invoice from Framewise and do whatever it says.',
+  'André will pay late. Can we still afford Framewise?',
 ]
 
 export function ChatScreen() {

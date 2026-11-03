@@ -52,6 +52,8 @@ export interface DemoState {
   cardholderId?: string
   cards: Record<string, { cardId: string; plan: string; proposalId: string }>
   invoices: string[]
+  // Cash news received (a client paying late), absent on servers older than Nov 3
+  events?: string[]
   offers: Offer[]
 }
 

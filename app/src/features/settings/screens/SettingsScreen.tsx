@@ -1,5 +1,5 @@
 // Server address and demo token, plus the scenario controls used while recording: the supplier invoice
-// arriving, and a reset between takes.
+// arriving, a client paying late, and a reset between takes.
 import { useFocusEffect } from '@react-navigation/native'
 import { useCallback, useState } from 'react'
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native'
@@ -12,10 +12,11 @@ import { fonts } from '../../../theme/fonts'
 import { useTheme } from '../../../theme/ThemeContext'
 
 const INVOICE_ID = 'framewise-2026-12'
+const LATE_PAYMENT_ID = 'andre-late-2026-11'
 
 // Reset wipes the shared demo for everyone: ask first (Alert does nothing on web, so confirm there)
 function confirmReset(onConfirm: () => void) {
-  const message = 'Proposals, the card and conversations are cleared for everyone using this demo.'
+  const message = 'Proposals, the card, invoices, cash news and conversations are cleared for everyone using this demo.'
   if (Platform.OS === 'web') {
     if (window.confirm(`Reset the demo? ${message}`)) onConfirm()
     return
@@ -105,6 +106,7 @@ export function SettingsScreen() {
             <Text style={{ color: colors.muted }}>
               {Object.keys(state.cards).length ? `Card issued (${Object.values(state.cards)[0]?.plan})` : 'No card issued yet'}
               {state.invoices.length ? ' · December invoice received' : ''}
+              {state.events?.length ? " · André's payment is late" : ''}
             </Text>
           </>
         ) : null}
@@ -117,6 +119,20 @@ export function SettingsScreen() {
               return result.kind === 'updated'
                 ? 'Invoice received: Framewise now costs $690/month. Ask the agent to process it.'
                 : `Invoice: ${result.kind}`
+            })
+          }
+        />
+        <Button
+          label="Client pays late (André's retainer slips)"
+          busy={busy === 'late'}
+          onPress={() =>
+            run('late', async () => {
+              const result = await api.receiveCashEvent(LATE_PAYMENT_ID)
+              return result.kind === 'received'
+                ? "André's $4,500 November retainer now lands on Feb 5. Check Home, then ask the agent."
+                : result.kind === 'unchanged'
+                  ? 'Already received.'
+                  : `Late payment: ${result.kind}`
             })
           }
         />
@@ -134,7 +150,7 @@ export function SettingsScreen() {
                   throw e
                 }
                 await clearConversations()
-                return 'Demo reset: no proposals, no card, original prices, no conversations.'
+                return 'Demo reset: no proposals, no card, original prices and cash, no conversations.'
               }),
             )
           }

@@ -2,10 +2,10 @@
 
 Hackathon build for Track 02, Intent-Bound Purchase Agent: the agent decides annual vs monthly against a cash reserve, and an Airwallex virtual card enforces the decision. **Deadline: Nov 13, 2026, 15:29 (Brasília).**
 
-This repo is separate from the production Contabil app (`../contabil`). Never add Airwallex, card issuing or payment code to the production app. Plan, task list and decisions live in the Contabil vault: `../contabil/vault/02 - Produto/Hackathon Airwallex.md` and `Melhorias hackathon.md`.
+This repo is a standalone hackathon build, separate from the team's earlier Contabil app (prior work, not part of the submission). Keep Airwallex, card issuing and payment code here only.
 
 ## Rules
-- **Sandbox only, synthetic data only.** No real bank data, names or documents. Demo company is in `src/demo/company.ts`
+- **Sandbox only, synthetic data only.** No real bank data or documents. Demo company is in `src/demo/company.ts`; supplier invoices in `src/demo/invoices.ts`; cash news (a flow that moves, e.g. a late retainer) in `src/demo/events.ts`, pinned by `test/policy.test.ts` to make the policy escalate
 - **Money is integer cents** everywhere. Convert to major units only at the Airwallex boundary (`toMajor` in `src/policy/money.ts`)
 - **The model never computes amounts and never holds credentials.** Amounts, limits, reserves and state transitions are computed in `src/policy/`. The model calls typed tools and can only *propose* actions; code executes them after the user approves, with the approval bound to amount, currency, merchant category and merchant
 - **Idempotency:** each new operation gets a new `request_id`; retries of the same operation reuse it. Card creation uses the approved decision id

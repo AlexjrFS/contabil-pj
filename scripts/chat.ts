@@ -1,5 +1,6 @@
 // Talk to the agent from the terminal: npm run chat -- "Should we buy Framewise annual or monthly?"
-// Add --after-invoice to play the moment the December price-increase invoice arrives (saved in data/).
+// Add --after-invoice to play the moment the December price-increase invoice arrives, and --late-payment for
+// André's retainer slipping to February (both saved in data/).
 // Proposals are printed with their fingerprint; nothing is approved or executed here.
 import { airwallexApi } from '../src/airwallex/api.js'
 import { AirwallexClient } from '../src/airwallex/client.js'
@@ -7,18 +8,21 @@ import { converse } from '../src/agent/chat.js'
 import type { Proposal } from '../src/approvals/proposals.js'
 import { JsonFileStore } from '../src/approvals/store.js'
 import { openSession } from '../src/app/session.js'
+import { LATE_RETAINER } from '../src/demo/events.js'
 import { PRICE_INCREASE } from '../src/demo/invoices.js'
 
 const args = process.argv.slice(2)
 const afterInvoice = args.includes('--after-invoice')
-const text = args.filter((a) => a !== '--after-invoice').join(' ').trim()
+const latePayment = args.includes('--late-payment')
+const text = args.filter((a) => !a.startsWith('--')).join(' ').trim()
 if (!text) {
-  console.error('Usage: npm run chat -- [--after-invoice] "your message"')
+  console.error('Usage: npm run chat -- [--after-invoice] [--late-payment] "your message"')
   process.exit(1)
 }
 
 const session = await openSession({ api: airwallexApi(AirwallexClient.fromEnv()), store: new JsonFileStore() })
 if (afterInvoice) console.log(`(invoice arrived: ${(await session.receiveInvoice(PRICE_INCREASE.id)).kind})\n`)
+if (latePayment) console.log(`(late payment: ${(await session.receiveCashEvent(LATE_RETAINER.id)).kind})\n`)
 
 const queue: Proposal[] = []
 const tools = session.tools((p) => queue.push(p))

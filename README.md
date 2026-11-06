@@ -8,7 +8,7 @@ Built for the [Airwallex Agentic Banking Hackathon](https://airwallex.hackereart
 
 ## Try it
 
-- **Video (under 5 min):** link in the submission.
+- **Video (under 5 min):** [youtu.be/bDbAABv2c1Y](https://youtu.be/bDbAABv2c1Y)
 - **Live app:** [contabil-pj.vercel.app](https://contabil-pj.vercel.app). Open **Settings** and enter the demo token from the submission notes. The API, the agent and the Airwallex sandbox behind it are the same ones the video uses.
 - It is one shared demo: please try it one person at a time. Only the presenter can reset it.
 - Halcyon's cash and its projection are synthetic demo data. The card, its limits and its transactions are live on the Airwallex sandbox.

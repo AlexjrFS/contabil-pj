@@ -11,11 +11,13 @@ import { describeCategory, formatMajor } from '../../../utils/format'
 
 const OFFER = 'framewise'
 
+// Declines first: once the monthly charge clears, the month's limit is spent and later declines would all
+// read LIMIT_EXCEEDED instead of their own reason
 const CHARGES: { kind: ChargeKind; label: string }[] = [
-  { kind: 'monthly', label: 'Monthly charge' },
-  { kind: 'annual', label: 'Annual charge' },
   { kind: 'other_currency', label: 'Same price in EUR' },
   { kind: 'other_category', label: 'Restaurant (other category)' },
+  { kind: 'annual', label: 'Annual charge' },
+  { kind: 'monthly', label: 'Monthly charge' },
 ]
 
 interface Attempt {
@@ -113,7 +115,7 @@ export function CardScreen() {
       {card ? (
         <View style={[styles.panel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.title, { color: colors.text }]}>Test charges</Text>
-          <Text style={{ color: colors.muted, fontSize: 13 }}>Sent to the Airwallex card simulator. Prices come from the offer.</Text>
+          <Text style={{ color: colors.muted, fontSize: 13 }}>Sent to the Airwallex card simulator. Prices come from the offer. Try them in this order: the monthly charge uses up this month's limit.</Text>
           <View style={styles.chargeGrid}>
             {CHARGES.map((c) => (
               <Pressable

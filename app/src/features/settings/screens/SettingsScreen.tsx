@@ -146,7 +146,7 @@ export function SettingsScreen() {
                 try {
                   await api.reset()
                 } catch (e) {
-                  if (e instanceof ApiError && e.status === 403) return 'Only the presenter can reset the demo: enter the admin token above.'
+                  if (e instanceof ApiError && e.status === 403) return 'This reset needs the admin token.'
                   throw e
                 }
                 await clearConversations()

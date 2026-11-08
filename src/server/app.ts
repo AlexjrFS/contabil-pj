@@ -15,8 +15,8 @@ export interface AppOptions {
   chat?: Converse
   // When set, every route but /health needs `Authorization: Bearer <token>`
   token?: string
-  // When set, only this token may reset the demo; it also opens every other route. The app build carries
-  // `token`, so whoever extracts it from a bundle still cannot wipe the demo
+  // When set, it opens every route, and only it may reset with a new Airwallex cardholder. A plain reset is
+  // open to the demo token: judges try the shared demo one after another and must be able to start over
   adminToken?: string
 }
 
@@ -164,8 +164,10 @@ export function createHandler(getSession: () => Promise<Session>, options: AppOp
     }
 
     if (is('POST', 'demo', 'reset')) {
-      if (options.adminToken && !admin) throw new HttpError(403, 'admin_only', 'Resetting the demo needs the admin token')
       const { new_cardholder } = await readJson(request)
+      if (new_cardholder === true && options.adminToken && !admin) {
+        throw new HttpError(403, 'admin_only', 'A new cardholder needs the admin token')
+      }
       await session.reset({ newCardholder: new_cardholder === true })
       return json(200, session.state())
     }

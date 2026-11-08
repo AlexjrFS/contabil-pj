@@ -1,5 +1,5 @@
 // Chat loop: the SDK tool runner calls the model, runs the tools it asks for and repeats until the final
-// answer. Same shape as the production Contabil chat (backend/lib/agente/chat.ts): events stream to the UI,
+// answer. Events stream to the UI,
 // and proposals reach the UI out of band, as confirmation cards the founder approves.
 import Anthropic from '@anthropic-ai/sdk'
 import type { BetaRunnableTool } from '@anthropic-ai/sdk/lib/tools/BetaRunnableTool'

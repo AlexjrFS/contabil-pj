@@ -166,14 +166,16 @@ test('with a demo token, everything but /health needs it', async () => {
   }, 's3cret')
 })
 
-test('with an admin token, only it can reset the demo; the demo token still opens everything else', async () => {
+test('the demo token can start the demo over; only the admin token can ask for a new cardholder', async () => {
   await withServer(
     async (call) => {
       const demo = { authorization: 'Bearer s3cret' }
       const admin = { authorization: 'Bearer adm1n' }
       assert.equal((await call('GET', '/state', undefined, demo)).status, 200)
       assert.equal((await call('GET', '/state', undefined, admin)).status, 200)
-      const refused = await call('POST', '/demo/reset', {}, demo)
+      assert.equal((await call('POST', '/demo/reset', {}, demo)).status, 200)
+      assert.equal((await call('POST', '/demo/reset', {}, { authorization: 'Bearer wrong' })).status, 401)
+      const refused = await call('POST', '/demo/reset', { new_cardholder: true }, demo)
       assert.equal(refused.status, 403)
       assert.equal(refused.body.error, 'admin_only')
       assert.equal((await call('POST', '/demo/reset', {}, admin)).status, 200)
